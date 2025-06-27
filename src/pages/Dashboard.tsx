@@ -328,7 +328,7 @@ const Dashboard: React.FC = () => {
                   <form onSubmit={handleSubmit} className="relative mx-4">
                     <textarea
                       ref={textareaRef}
-                      placeholder="Posez votre question à WealthSensePro..."
+                      placeholder="Posez votre question à WealthSenseImpact..."
                       className={`w-full ${
                         darkMode 
                           ? 'bg-dark-card text-white placeholder-gray-400 border-gray-800' 
@@ -372,7 +372,7 @@ const Dashboard: React.FC = () => {
 
                   <div className="flex items-center justify-center text-yellow-500 text-xs mt-6 mx-4 p-3 rounded-lg bg-yellow-500/10">
                     <AlertTriangle className="h-3 w-3 mr-2 flex-shrink-0" />
-                    <p>WealthSensePro est en version Beta. Les réponses générées peuvent contenir des erreurs.</p>
+                    <p>WealthSenseImpact est en version Beta. Les réponses générées peuvent contenir des erreurs.</p>
                   </div>
                 </div>
               </div>
@@ -396,7 +396,7 @@ const Dashboard: React.FC = () => {
                   <form onSubmit={handleSubmit} className="relative max-w-3xl mx-auto px-4 py-4">
                     <textarea
                       ref={textareaRef}
-                      placeholder="Posez votre question à WealthSensePro..."
+                      placeholder="Posez votre question à WealthSenseImpact..."
                       className={`w-full ${
                         darkMode 
                           ? 'bg-dark-card text-white placeholder-gray-400 border-gray-800' 
