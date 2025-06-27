@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, User, Info, Briefcase } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { PROFESSIONAL_ACTIVITIES } from '../types';
-import { UserProfile } from '../types';
 import DisclaimerModal from './DisclaimerModal';
 import { authService } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +14,6 @@ const AuthForm: React.FC = () => {
   const [lastName, setLastName] = useState('');
   const [referralSource, setReferralSource] = useState('');
   const [otherReferralSource, setOtherReferralSource] = useState('');
-  const [professionalActivity, setProfessionalActivity] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +26,6 @@ const AuthForm: React.FC = () => {
     lastName: string;
     referralSource: string;
     otherReferralSource?: string;
-    professionalActivity: string;
   } | null>(null);
   
   const [passwordValidation, setPasswordValidation] = useState({
@@ -63,7 +59,6 @@ const AuthForm: React.FC = () => {
     setLastName('');
     setReferralSource('');
     setOtherReferralSource('');
-    setProfessionalActivity('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,15 +83,10 @@ const AuthForm: React.FC = () => {
         return setError('Veuillez préciser comment vous avez connu WealthSensePro');
       }
 
-      if (!professionalActivity) {
-        return setError('Veuillez sélectionner votre activité professionnelle');
-      }
-
       // Store form data temporarily in localStorage
       localStorage.setItem('tempFirstName', firstName);
       localStorage.setItem('tempLastName', lastName);
       localStorage.setItem('tempEmail', email);
-      localStorage.setItem('tempProfessionalActivity', professionalActivity);
       localStorage.setItem('tempReferralSource', referralSource);
       if (referralSource === 'other') {
         localStorage.setItem('tempOtherReferralSource', otherReferralSource);
@@ -109,7 +99,6 @@ const AuthForm: React.FC = () => {
         lastName,
         referralSource,
         otherReferralSource: referralSource === 'other' ? otherReferralSource : undefined,
-        professionalActivity
       });
       setShowDisclaimer(true);
       return;
@@ -149,14 +138,13 @@ const AuthForm: React.FC = () => {
 
     try {
       setLoading(true);
-      const userData: UserProfile = {
+      const userData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         referralSource: formData.referralSource === 'other' ? 'other' : formData.referralSource,
         otherReferralSource: formData.otherReferralSource,
         disclaimerAccepted: true,
-        disclaimerAcceptedAt: Date.now(),
-        professionalActivity: formData.professionalActivity
+        disclaimerAcceptedAt: Date.now()
       };
       await authService.signup({
         email: formData.email,
@@ -165,7 +153,6 @@ const AuthForm: React.FC = () => {
         lastName: formData.lastName,
         referralSource: formData.referralSource,
         otherReferralSource: formData.otherReferralSource,
-        professionalActivity: formData.professionalActivity,
         disclaimerAccepted: true,
         disclaimerAcceptedAt: Date.now()
       });
@@ -360,31 +347,6 @@ const AuthForm: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="professionalActivity">
-                    Votre activité professionnelle
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Briefcase className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <select
-                      id="professionalActivity"
-                      value={professionalActivity}
-                      onChange={(e) => setProfessionalActivity(e.target.value)}
-                      className="bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 p-2.5 w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
-                      required
-                    >
-                      <option value="">Sélectionnez votre activité</option>
-                      {PROFESSIONAL_ACTIVITIES.map((activity) => (
-                        <option key={activity} value={activity}>
-                          {activity}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="referralSource">
                     Comment avez-vous connu WealthSensePro ?
