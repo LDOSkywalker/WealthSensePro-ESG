@@ -63,9 +63,9 @@ app.use((req, res, next) => {
 // Configuration CORS pour la préproduction
 const allowedOrigins = [
     'http://localhost:5173', // Dev local
-    'https://develop--app-wealthsensepro.netlify.app', // Branche develop
-    'https://app-wealthsensepro.netlify.app', // Preprod
-    'https://deploy-preview-3--app-wealthsensepro.netlify.app', // Branche temporaire Netlify
+    // Branche develop à configurer
+    'https://wealthsense-esg.netlify.app', // Preprod
+    // Branche temporaire Netlify à configurer
     process.env.FRONTEND_URL // URL configurée dans Render
 ].filter(Boolean); // Supprime les valeurs undefined
 
