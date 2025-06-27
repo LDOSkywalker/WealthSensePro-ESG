@@ -177,15 +177,15 @@ const Landing: React.FC = () => {
   const conversation = [
     {
       question: "Bonjour, comment puis-je vous aider aujourd'hui ?",
-      response: "Je souhaite me renseigner sur le Private Equity"
+      response: "Je souhaite me former à la finance responsable."
     },
     {
-      question: "Je vais vous expliquer les fondamentaux du Private Equity. Que souhaitez-vous savoir en particulier ?",
-      response: "Quels sont les avantages et les risques ?"
+      question: "Je vais vous expliquer les fondamentaux de la finance responsable. Que souhaitez-vous savoir en particulier ?",
+      response: "Je souhaite savoir ce que signifie ESG ?"
     },
     {
-      question: "Le Private Equity offre plusieurs avantages comme un potentiel de rendement élevé et une diversification du portefeuille, mais comporte aussi des risques comme l'illiquidité et une volatilité importante. Voulez-vous que je détaille ces points ?",
-      response: "Oui, je voudrais en savoir plus sur les rendements"
+      question: "ESG est l’acronyme de Environnemental, Social et Gouvernance. Ce terme désigne un cadre d’analyse et de gestion de la performance extra-financière d’une entreprise ou d’un investissement. Il s’agit de trois grands piliers utilisés pour évaluer la contribution d’une entreprise au développement durable, ainsi que les risques et opportunités liés à ces thématique",
+      response: "Quels sont les fonds qui respectent ces critères ?"
     }
   ];
   useEffect(() => {
