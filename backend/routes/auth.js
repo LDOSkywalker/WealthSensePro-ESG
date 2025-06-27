@@ -94,6 +94,9 @@ router.post('/signup', async (req, res) => {
             displayName: `${firstName} ${lastName}`
         });
 
+        // Valeur par défaut pour professionalActivity
+        const safeProfessionalActivity = professionalActivity || "Non spécifié";
+
         // Enregistrement des infos dans Firestore
         const db = admin.firestore();
         await db.collection('users').doc(userRecord.uid).set({
@@ -103,7 +106,7 @@ router.post('/signup', async (req, res) => {
             lastName,
             referralSource,
             otherReferralSource: referralSource === 'other' ? otherReferralSource : null,
-            professionalActivity,
+            professionalActivity: safeProfessionalActivity,
             disclaimerAccepted: !!disclaimerAccepted,
             disclaimerAcceptedAt: disclaimerAcceptedAt || Date.now(),
             createdAt: Date.now(),
