@@ -349,7 +349,7 @@ const AuthForm: React.FC = () => {
 
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="referralSource">
-                    Comment avez-vous connu WealthSensePro ?
+                    Comment avez-vous connu WealthSenseImpact ?
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -362,6 +362,7 @@ const AuthForm: React.FC = () => {
                       className="bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 p-2.5 w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
                     >
                       <option value="">Sélectionnez une option</option>
+                      <option value="Meyon">Je suis client de Meyon</option>
                       <option value="social">Réseaux sociaux</option>
                       <option value="friend">Recommandation d'un ami</option>
                       <option value="search">Moteur de recherche</option>
