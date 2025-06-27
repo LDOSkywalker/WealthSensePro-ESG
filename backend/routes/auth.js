@@ -85,7 +85,7 @@ router.post('/logout', (req, res) => {
 // Endpoint d'inscription
 router.post('/signup', async (req, res) => {
     try {
-        const { email, password, firstName, lastName, referralSource, otherReferralSource, professionalActivity, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
+        const { email, password, firstName, lastName, referralSource, otherReferralSource, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
 
         // Création de l'utilisateur dans Firebase Auth
         const userRecord = await admin.auth().createUser({
@@ -94,7 +94,7 @@ router.post('/signup', async (req, res) => {
             displayName: `${firstName} ${lastName}`
         });
 
-        // Préparation des données utilisateur sans champ undefined
+        // Préparation des données utilisateur sans professionalActivity
         const userData = {
             uid: userRecord.uid,
             email,
@@ -109,9 +109,6 @@ router.post('/signup', async (req, res) => {
             role: 'user',
             isActive: true
         };
-        if (professionalActivity !== undefined) {
-            userData.professionalActivity = professionalActivity || "Non spécifié";
-        }
 
         // Enregistrement des infos dans Firestore
         const db = admin.firestore();
