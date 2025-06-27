@@ -39,18 +39,18 @@ const Dashboard: React.FC = () => {
   const suggestionButtons: SuggestionButton[] = [
     {
       icon: <Scale className="w-4 h-4" />,
-      text: "Question fiscale",
-      prompt: "J'ai une question concernant la fiscalité."
+      text: "Education financière",
+      prompt: "Je souhaite me former à la finance responsable."
     },
     {
       icon: <Package className="w-4 h-4" />,
-      text: "Question sur un produit",
-      prompt: "J'aimerais en savoir plus sur un produit financier."
+      text: "Question sur un fonds",
+      prompt: "J'aimerais en savoir plus sur un fonds en particulier."
     },
     {
       icon: <HelpCircle className="w-4 h-4" />,
-      text: "Question réglementaire",
-      prompt: "J'ai besoin d'informations sur la réglementation."
+      text: "Comprendre la réglementation ESG",
+      prompt: "Je veux comprendre les règles, labels ou obligations en matière de finance responsable."
     }
   ];
 
