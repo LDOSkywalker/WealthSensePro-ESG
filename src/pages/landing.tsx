@@ -60,7 +60,7 @@ const features = [
     title: "Accès Intelligent à l'Information Financière",
     description: "Toutes les données dont vous avez besoin, validées et présentées clairement.",
     benefits: [
-      "Valorisation en temps réel",
+      "Analyse claire et synthétique des informations",
       "Informations détaillées sur tous les produits",
       "Visualisation intuitive des données"
     ]
@@ -107,7 +107,7 @@ const Features = () => {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-4xl font-bold mb-4">
-              Découvrez la Puissance de WealthSense
+              Découvrez la Puissance de WealthSenseImpact
             </h2>
             <p className="text-xl text-gray-600">
               Votre copilote intelligent pour comprendre, comparer et investir en toute confiance
@@ -299,7 +299,7 @@ const Landing: React.FC = () => {
                   Propulsé par l'IA
                 </span>
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-primary to-primary bg-clip-text text-transparent">
-                  Votre Assistant Personnel en Gestion de Patrimoine
+                  Votre Assistant Personnel en Investissement Responsable
                 </h1>
                 <p className="text-xl text-gray-600 max-w-3xl mb-12">
                   Découvrez une nouvelle façon d'aborder vos investissements avec notre assistant IA spécialisé
@@ -332,7 +332,7 @@ const Landing: React.FC = () => {
                       Créer un compte
                     </h2>
                     <p className="text-center text-gray-600 mb-6">
-                      Créez votre compte pour accéder à WealthSense
+                      Créez votre compte pour accéder à WealthSenseImpact
                     </p>
                     {error && (
                       <div className="bg-red-500/20 text-red-400 p-3 rounded-md mb-4 flex items-start">
@@ -523,7 +523,7 @@ const Landing: React.FC = () => {
                 Une Expertise Financière à Portée de Main
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Obtenez des réponses instantanées à toutes vos questions sur la gestion de patrimoine
+                Obtenez des réponses instantanées à toutes vos questions sur la finance responsable
               </p>
             </motion.div>
             <motion.div
@@ -580,10 +580,10 @@ const Landing: React.FC = () => {
         <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-6">
-              Prêt à optimiser votre patrimoine ?
+              Prêt à découvrir la finance durable ?
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              Rejoignez WealthSense aujourd'hui et bénéficiez d'un accompagnement personnalisé pour vos investissements
+              Rejoignez WealthSenseImpact aujourd'hui et bénéficiez d'un accompagnement personnalisé pour vos investissements
             </p>
             <Link
               to="/dashboard"
@@ -602,7 +602,7 @@ const Landing: React.FC = () => {
             <div>
               <Logo className="text-2xl mb-4" />
               <p className="text-gray-600 text-sm">
-                Votre assistant personnel en gestion de patrimoine, propulsé par l'intelligence artificielle
+                Votre assistant personnel en finance durable, propulsé par l'intelligence artificielle
               </p>
             </div>
             <div>
