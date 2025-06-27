@@ -65,6 +65,7 @@ const allowedOrigins = [
     'http://localhost:5173', // Dev local
     'https://develop--wealthsense-esg.netlify.app' , // 
     'https://wealthsense-esg.netlify.app', // Preprod
+    'https://wealthsense-impact.com/', // Prod
     // Branche temporaire Netlify à configurer
     process.env.FRONTEND_URL // URL configurée dans Render
 ].filter(Boolean); // Supprime les valeurs undefined
