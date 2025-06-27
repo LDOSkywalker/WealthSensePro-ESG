@@ -237,6 +237,7 @@ const Landing: React.FC = () => {
         disclaimerAccepted: true,
         disclaimerAcceptedAt: Date.now(),
       });
+      await authService.login({ email, password });
       navigate('/dashboard');
     } catch (err: any) {
       let errorMessage = 'Une erreur est survenue';
