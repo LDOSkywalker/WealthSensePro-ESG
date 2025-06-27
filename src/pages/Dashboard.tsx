@@ -317,7 +317,7 @@ const Dashboard: React.FC = () => {
                       showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                     } ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
                   >
-                    Je suis WealthSensePro, l'assistant IA des professionnels du patrimoine et de l'investissement.<br />
+                    Je suis WealthSenseImpact, l'assistant IA dédiée à la finance responsable.<br />
                     En période d'entrainement, vos interactions seront utilisées pour améliorer le modèle.
                   </p>
                 </div>
