@@ -3,7 +3,7 @@ import { User } from '../types';
 
 // Configuration de l'URL de l'API selon l'environnement
 const API_URL = import.meta.env.PROD 
-    ? 'https://wealthsensepro2theturfu.onrender.com/api'  // URL de production AVEC /api
+    ? 'https://wealthsensepro-esg.onrender.com/api'  // URL de production AVEC /api
     : import.meta.env.VITE_API_URL || 'http://localhost:3006/api';  // URL de développement AVEC /api
 
 // Configuration d'axios pour inclure les cookies
