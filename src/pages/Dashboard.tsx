@@ -27,13 +27,10 @@ const Dashboard: React.FC = () => {
   const [showContent, setShowContent] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const [selectedModel, setSelectedModel] = useState<IAModel>(IA_MODELS.find(model => model.isDefault) || IA_MODELS[0]);
-  const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const { currentUser } = useAuth();
   const { currentConversation, createNewConversation, addMessage, error: conversationError, deleteConversation } = useConversation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const modelSelectorRef = useRef<HTMLDivElement>(null);
 
   const [firstName, setFirstName] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -42,18 +39,18 @@ const Dashboard: React.FC = () => {
   const suggestionButtons: SuggestionButton[] = [
     {
       icon: <Scale className="w-4 h-4" />,
-      text: "Question fiscale",
-      prompt: "J'ai une question concernant la fiscalité."
+      text: "Education financière",
+      prompt: "Je souhaite me former à la finance responsable."
     },
     {
       icon: <Package className="w-4 h-4" />,
-      text: "Question sur un produit",
-      prompt: "J'aimerais en savoir plus sur un produit financier."
+      text: "Question sur un fonds",
+      prompt: "J'aimerais en savoir plus sur un fonds en particulier."
     },
     {
       icon: <HelpCircle className="w-4 h-4" />,
-      text: "Question réglementaire",
-      prompt: "J'ai besoin d'informations sur la réglementation."
+      text: "Comprendre la réglementation ESG",
+      prompt: "Je veux comprendre les règles, labels ou obligations en matière de finance responsable."
     }
   ];
 
@@ -67,15 +64,6 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     setShowContent(true);
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modelSelectorRef.current && !modelSelectorRef.current.contains(event.target as Node)) {
-        setIsModelSelectorOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -154,7 +142,7 @@ const Dashboard: React.FC = () => {
         userId: currentUser.uid,
         conversationId: targetConversation.id,
         topic: 'General',
-        iaModel: selectedModel.id
+        iaModel: 'WS-One'
       };
       
       const response = await axios({
@@ -261,15 +249,6 @@ const Dashboard: React.FC = () => {
     sendMessage(prompt);
   };
 
-  const toggleModelSelector = () => {
-    setIsModelSelectorOpen(!isModelSelectorOpen);
-  };
-
-  const handleModelSelect = (model: IAModel) => {
-    setSelectedModel(model);
-    setIsModelSelectorOpen(false);
-  };
-
   const handleDeleteConversationRequest = (conversation: Conversation) => {
     setConversationToDelete(conversation);
     setDeleteModalOpen(true);
@@ -338,7 +317,7 @@ const Dashboard: React.FC = () => {
                       showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                     } ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
                   >
-                    Je suis WealthSensePro, l'assistant IA des professionnels du patrimoine et de l'investissement.<br />
+                    Je suis WealthSenseImpact, l'assistant IA dédiée à la finance responsable.<br />
                     En période d'entrainement, vos interactions seront utilisées pour améliorer le modèle.
                   </p>
                 </div>
@@ -347,60 +326,14 @@ const Dashboard: React.FC = () => {
                   showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                 }`}>
                   <form onSubmit={handleSubmit} className="relative mx-4">
-                    <div className="relative flex items-center" ref={modelSelectorRef}>
-                      <button
-                        type="button"
-                        onClick={toggleModelSelector}
-                        className={`absolute left-4 p-2 rounded-lg transition-colors ${
-                          darkMode 
-                            ? 'hover:bg-gray-700 text-primary' 
-                            : 'hover:bg-gray-100 text-primary'
-                        }`}
-                      >
-                        <Sparkles className="h-5 w-5" />
-                      </button>
-
-                      {isModelSelectorOpen && (
-                        <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-50 ${
-                          darkMode ? 'bg-dark-card border border-gray-700' : 'bg-white border border-gray-200'
-                        }`}>
-                          {IA_MODELS.map((model) => (
-                            <button
-                              key={model.id}
-                              type="button"
-                              onClick={() => handleModelSelect(model)}
-                              className={`w-full text-left px-4 py-3 flex flex-col ${
-                                model.id === selectedModel.id
-                                  ? 'bg-primary/10 text-primary'
-                                  : darkMode
-                                  ? 'hover:bg-gray-800 text-white'
-                                  : 'hover:bg-gray-50 text-gray-900'
-                              } transition-colors`}
-                            >
-                              <span className="font-medium text-sm">{model.name}</span>
-                              <span className={`text-xs mt-0.5 ${
-                                model.id === selectedModel.id
-                                  ? 'text-primary/70'
-                                  : darkMode
-                                  ? 'text-gray-400'
-                                  : 'text-gray-500'
-                              }`}>
-                                {model.description}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
                     <textarea
                       ref={textareaRef}
-                      placeholder="Posez votre question à WealthSensePro..."
+                      placeholder="Posez votre question à WealthSenseImpact..."
                       className={`w-full ${
                         darkMode 
                           ? 'bg-dark-card text-white placeholder-gray-400 border-gray-800' 
                           : 'bg-white text-gray-900 placeholder-gray-500 border-gray-200'
-                      } border rounded-xl pl-12 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[56px] max-h-[200px]`}
+                      } border rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[56px] max-h-[200px]`}
                       value={message}
                       onChange={handleMessageChange}
                       onKeyDown={handleKeyDown}
@@ -439,7 +372,7 @@ const Dashboard: React.FC = () => {
 
                   <div className="flex items-center justify-center text-yellow-500 text-xs mt-6 mx-4 p-3 rounded-lg bg-yellow-500/10">
                     <AlertTriangle className="h-3 w-3 mr-2 flex-shrink-0" />
-                    <p>WealthSensePro est en version Beta. Les réponses générées peuvent contenir des erreurs.</p>
+                    <p>WealthSenseImpact est en version Beta. Les réponses générées peuvent contenir des erreurs.</p>
                   </div>
                 </div>
               </div>
@@ -461,58 +394,14 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className={`border-t ${darkMode ? 'border-gray-800 bg-dark' : 'border-gray-200 bg-white'} shadow-lg`}>
                   <form onSubmit={handleSubmit} className="relative max-w-3xl mx-auto px-4 py-4">
-                    <div className="relative flex items-center" ref={modelSelectorRef}>
-                      <button
-                        type="button"
-                        onClick={toggleModelSelector}
-                        className={`absolute left-4 p-2 rounded-lg transition-colors ${
-                          darkMode 
-                            ? 'hover:bg-gray-700 text-primary' 
-                            : 'hover:bg-gray-100 text-primary'
-                        }`}
-                      >
-                        <Sparkles className="h-5 w-5" />
-                      </button>
-                      {isModelSelectorOpen && (
-                        <div className={`absolute bottom-full left-0 mb-2 w-64 rounded-lg shadow-lg z-50 ${
-                          darkMode ? 'bg-dark-card border border-gray-700' : 'bg-white border border-gray-200'
-                        }`}>
-                          {IA_MODELS.map((model) => (
-                            <button
-                              key={model.id}
-                              type="button"
-                              onClick={() => handleModelSelect(model)}
-                              className={`w-full text-left px-4 py-3 flex flex-col ${
-                                model.id === selectedModel.id
-                                  ? 'bg-primary/10 text-primary'
-                                  : darkMode
-                                  ? 'hover:bg-gray-800 text-white'
-                                  : 'hover:bg-gray-50 text-gray-900'
-                              } transition-colors`}
-                            >
-                              <span className="font-medium text-sm">{model.name}</span>
-                              <span className={`text-xs mt-0.5 ${
-                                model.id === selectedModel.id
-                                  ? 'text-primary/70'
-                                  : darkMode
-                                  ? 'text-gray-400'
-                                  : 'text-gray-500'
-                              }`}>
-                                {model.description}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                     <textarea
                       ref={textareaRef}
-                      placeholder="Posez votre question à WealthSensePro..."
+                      placeholder="Posez votre question à WealthSenseImpact..."
                       className={`w-full ${
                         darkMode 
                           ? 'bg-dark-card text-white placeholder-gray-400 border-gray-800' 
                           : 'bg-white text-gray-900 placeholder-gray-500 border-gray-200'
-                      } border rounded-xl pl-12 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[56px] max-h-[200px]`}
+                      } border rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[56px] max-h-[200px]`}
                       value={message}
                       onChange={handleMessageChange}
                       onKeyDown={handleKeyDown}

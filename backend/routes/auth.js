@@ -85,7 +85,7 @@ router.post('/logout', (req, res) => {
 // Endpoint d'inscription
 router.post('/signup', async (req, res) => {
     try {
-        const { email, password, firstName, lastName, referralSource, otherReferralSource, professionalActivity, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
+        const { email, password, firstName, lastName, referralSource, otherReferralSource, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
 
         // Création de l'utilisateur dans Firebase Auth
         const userRecord = await admin.auth().createUser({
@@ -94,23 +94,25 @@ router.post('/signup', async (req, res) => {
             displayName: `${firstName} ${lastName}`
         });
 
-        // Enregistrement des infos dans Firestore
-        const db = admin.firestore();
-        await db.collection('users').doc(userRecord.uid).set({
+        // Préparation des données utilisateur sans professionalActivity
+        const userData = {
             uid: userRecord.uid,
             email,
             firstName,
             lastName,
             referralSource,
             otherReferralSource: referralSource === 'other' ? otherReferralSource : null,
-            professionalActivity,
             disclaimerAccepted: !!disclaimerAccepted,
             disclaimerAcceptedAt: disclaimerAcceptedAt || Date.now(),
             createdAt: Date.now(),
             updatedAt: Date.now(),
             role: 'user',
             isActive: true
-        });
+        };
+
+        // Enregistrement des infos dans Firestore
+        const db = admin.firestore();
+        await db.collection('users').doc(userRecord.uid).set(userData);
 
         // Génération du JWT
         const token = jwt.sign(

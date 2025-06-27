@@ -21,7 +21,6 @@ export interface SignupPayload {
     lastName: string;
     referralSource: string;
     otherReferralSource?: string;
-    professionalActivity: string;
     disclaimerAccepted: boolean;
     disclaimerAcceptedAt: number;
 }

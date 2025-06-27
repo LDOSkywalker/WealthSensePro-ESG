@@ -1,4 +1,4 @@
-# WealthSense ESG
+# WealthSense ESG:
 
 WealthSense ESG est une solution de gestion de patrimoine dédiée aux utilisateurs finaux (particuliers), axée sur la thématique ESG (Environnement, Social, Gouvernance). Cette plateforme utilise l'intelligence artificielle pour fournir des conseils financiers personnalisés et des outils adaptés à la prise en compte des critères ESG dans la gestion de patrimoine.
 
