@@ -16,7 +16,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
     <h1 className={`${sizes[size]} tracking-tight ${className}`}>
       <span className="font-light">Wealth</span>
       <span className="font-normal">Sense</span>
-      <span className="text-primary font-medium">Pro</span>
+      <span className="text-primary font-medium">Impact</span>
     </h1>
   );
 };
