@@ -184,7 +184,7 @@ const Landing: React.FC = () => {
       response: "Je souhaite savoir ce que signifie ESG ?"
     },
     {
-      question: "ESG est l’acronyme de Environnemental, Social et Gouvernance. Ce terme désigne un cadre d’analyse et de gestion de la performance extra-financière d’une entreprise ou d’un investissement. Il s’agit de trois grands piliers utilisés pour évaluer la contribution d’une entreprise au développement durable, ainsi que les risques et opportunités liés à ces thématique",
+      question: "ESG est l'acronyme de Environnemental, Social et Gouvernance. Ce terme désigne un cadre d'analyse et de gestion de la performance extra-financière d'une entreprise ou d'un investissement. Il s'agit de trois grands piliers utilisés pour évaluer la contribution d'une entreprise au développement durable, ainsi que les risques et opportunités liés à ces thématiques.",
       response: "Quels sont les fonds qui respectent ces critères ?"
     }
   ];
@@ -533,7 +533,7 @@ const Landing: React.FC = () => {
               viewport={{ once: true }}
               className="max-w-4xl mx-auto"
             >
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden w-full max-w-2xl min-h-[320px] mx-auto">
                 <div className="p-6 space-y-6">
                   {conversation.slice(0, currentMessageIndex + 1).map((msg, index) => (
                     <React.Fragment key={index}>
