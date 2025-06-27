@@ -1,14 +1,15 @@
-# WealthSense Pro TheTurfu2
+# WealthSense ESG
 
-WealthSense Pro est une solution professionnelle de gestion de patrimoine destinée aux entreprises et aux professionnels de la finance. Cette plateforme B2B utilise l'intelligence artificielle pour fournir des conseils financiers avancés et des outils de gestion de patrimoine adaptés aux besoins des professionnels.
+WealthSense ESG est une solution de gestion de patrimoine dédiée aux utilisateurs finaux (particuliers), axée sur la thématique ESG (Environnement, Social, Gouvernance). Cette plateforme utilise l'intelligence artificielle pour fournir des conseils financiers personnalisés et des outils adaptés à la prise en compte des critères ESG dans la gestion de patrimoine.
 
 ## Fonctionnalités
 
-- Interface professionnelle et personnalisable
-- Authentification multi-niveaux avec Firebase
-- Gestion avancée des profils utilisateurs et des rôles
-- Tableau de bord analytique pour les professionnels
-- Système de reporting intégré
+- Interface intuitive et personnalisable pour particuliers
+- Prise en compte des critères ESG dans l'analyse patrimoniale
+- Authentification sécurisée avec Firebase
+- Gestion des profils utilisateurs
+- Tableau de bord analytique pour le suivi ESG
+- Système de reporting ESG intégré
 - Conversations IA pour des conseils financiers personnalisés
 - API REST pour l'intégration avec d'autres systèmes
 

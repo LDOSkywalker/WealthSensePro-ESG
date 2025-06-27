@@ -1,5 +1,6 @@
 {
-  "name": "wealthsense-pro",
+  "name": "wealthsense-esg",
+  "description": "Solution de gestion de patrimoine ESG pour utilisateurs finaux (particuliers), intégrant l'IA et les critères Environnement, Social, Gouvernance.",
   "private": true,
   "version": "1.0.0",
   "type": "module",
