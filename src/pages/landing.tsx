@@ -28,6 +28,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { authService } from '../services/auth';
+import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import { useInView as useInViewIntersection } from 'react-intersection-observer';
 
@@ -156,6 +157,7 @@ const Features = () => {
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showContent, setShowContent] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -237,7 +239,7 @@ const Landing: React.FC = () => {
         disclaimerAccepted: true,
         disclaimerAcceptedAt: Date.now(),
       });
-      await authService.login({ email, password });
+      await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
       let errorMessage = 'Une erreur est survenue';
