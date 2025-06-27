@@ -187,7 +187,7 @@ const AuthForm: React.FC = () => {
           
           {!isLogin && (
             <p className="text-center text-gray-600 mb-6">
-              Créez votre compte pour accéder à WealthSensePro
+              Créez votre compte pour accéder à WealthSenseImpact
             </p>
           )}
           
