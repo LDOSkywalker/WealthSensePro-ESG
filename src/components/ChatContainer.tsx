@@ -17,7 +17,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006';
 const ChatContainer: React.FC<ChatContainerProps> = ({ selectedTopic, darkMode = true }) => {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<IAModel>(IA_MODELS.find(model => model.isDefault) || IA_MODELS[0]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { currentConversation, createNewConversation, addMessage } = useConversation();
@@ -71,7 +70,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ selectedTopic, darkMode =
         userId: currentUser.uid,
         conversationId: targetConversation.id,
         topic: selectedTopic?.title || 'General',
-        iaModel: selectedModel.id,
+        iaModel: 'default',
         lastMessages: lastMessages
       };
       
@@ -231,9 +230,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ selectedTopic, darkMode =
         <ChatInput 
           onSendMessage={sendMessage} 
           isLoading={isLoading} 
-          darkMode={darkMode} 
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
+          darkMode={darkMode}
         />
       </div>
     </div>
