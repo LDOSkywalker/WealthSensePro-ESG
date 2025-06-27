@@ -27,10 +27,9 @@ import {
   ArcElement
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/auth';
 import Logo from '../components/Logo';
 import { useInView as useInViewIntersection } from 'react-intersection-observer';
-import { PROFESSIONAL_ACTIVITIES } from '../types';
 
 // Register ChartJS components
 ChartJS.register(
@@ -157,7 +156,6 @@ const Features = () => {
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
-  const { signup } = useAuth();
   const [showContent, setShowContent] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -170,7 +168,6 @@ const Landing: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const heroRef = useRef(null);
   const heroInView = useInView(heroRef, { once: true });
-  const [professionalActivity, setProfessionalActivity] = useState('');
 
   // Chat Demo
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -228,19 +225,17 @@ const Landing: React.FC = () => {
     if (password !== confirmPassword) {
       return setError('Les mots de passe ne correspondent pas');
     }
-    if (!professionalActivity) {
-      return setError('Veuillez sélectionner votre activité professionnelle');
-    }
     try {
       setError('');
       setLoading(true);
-      await signup(email, password, {
+      await authService.signup({
+        email,
+        password,
         firstName,
         lastName,
         referralSource: 'landing',
         disclaimerAccepted: true,
         disclaimerAcceptedAt: Date.now(),
-        professionalActivity
       });
       navigate('/dashboard');
     } catch (err: any) {
@@ -478,28 +473,6 @@ const Landing: React.FC = () => {
                               <Eye className="h-5 w-5 text-gray-400" />
                             )}
                           </button>
-                        </div>
-                      </div>
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1" htmlFor="professionalActivity">
-                          Votre activité professionnelle
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 21V7a2 2 0 012-2h8a2 2 0 012 2v14M6 21h12M6 21a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6z" /></svg>
-                          </div>
-                          <select
-                            id="professionalActivity"
-                            value={professionalActivity}
-                            onChange={(e) => setProfessionalActivity(e.target.value)}
-                            className="bg-dark border border-gray-700 text-white rounded-lg pl-10 p-2.5 w-full focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
-                            required
-                          >
-                            <option value="">Sélectionnez votre activité</option>
-                            {PROFESSIONAL_ACTIVITIES.map((activity) => (
-                              <option key={activity} value={activity}>{activity}</option>
-                            ))}
-                          </select>
                         </div>
                       </div>
                       <motion.button
