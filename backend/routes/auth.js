@@ -94,26 +94,28 @@ router.post('/signup', async (req, res) => {
             displayName: `${firstName} ${lastName}`
         });
 
-        // Valeur par défaut pour professionalActivity
-        const safeProfessionalActivity = professionalActivity || "Non spécifié";
-
-        // Enregistrement des infos dans Firestore
-        const db = admin.firestore();
-        await db.collection('users').doc(userRecord.uid).set({
+        // Préparation des données utilisateur sans champ undefined
+        const userData = {
             uid: userRecord.uid,
             email,
             firstName,
             lastName,
             referralSource,
             otherReferralSource: referralSource === 'other' ? otherReferralSource : null,
-            professionalActivity: safeProfessionalActivity,
             disclaimerAccepted: !!disclaimerAccepted,
             disclaimerAcceptedAt: disclaimerAcceptedAt || Date.now(),
             createdAt: Date.now(),
             updatedAt: Date.now(),
             role: 'user',
             isActive: true
-        });
+        };
+        if (professionalActivity !== undefined) {
+            userData.professionalActivity = professionalActivity || "Non spécifié";
+        }
+
+        // Enregistrement des infos dans Firestore
+        const db = admin.firestore();
+        await db.collection('users').doc(userRecord.uid).set(userData);
 
         // Génération du JWT
         const token = jwt.sign(
