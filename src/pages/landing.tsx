@@ -298,7 +298,7 @@ const Landing: React.FC = () => {
                   <Sparkles className="w-4 h-4 mr-2" />
                   Propulsé par l'IA
                 </span>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-primary-light to-primary bg-clip-text text-transparent">
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-primary to-primary bg-clip-text text-transparent">
                   Votre Assistant Personnel en Gestion de Patrimoine
                 </h1>
                 <p className="text-xl text-gray-600 max-w-3xl mb-12">
