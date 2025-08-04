@@ -28,6 +28,10 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     authService.checkAuth().then(user => {
       setCurrentUser(user);
       setLoading(false);
+    }).catch(error => {
+      console.log('Erreur lors de la vérification de l\'authentification:', error);
+      setCurrentUser(null);
+      setLoading(false);
     });
   }, []);
 

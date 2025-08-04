@@ -53,7 +53,8 @@ export const authService = {
         try {
             const response = await axios.get(`${API_URL}/protected`, { withCredentials: true });
             return response.data.user;
-        } catch (error) {
+        } catch (error: any) {
+            console.log('checkAuth error:', error.response?.status, error.response?.data);
             return null;
         }
     },
