@@ -32,6 +32,11 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       console.log('Erreur lors de la vérification de l\'authentification:', error);
       setCurrentUser(null);
       setLoading(false);
+      
+      // Si on est sur /dashboard et pas connecté, rediriger vers /login
+      if (window.location.pathname === '/dashboard') {
+        window.location.href = '/login';
+      }
     });
   }, []);
 

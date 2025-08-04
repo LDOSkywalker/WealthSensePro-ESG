@@ -9,6 +9,8 @@ const API_URL = import.meta.env.PROD
 // Configuration d'axios pour inclure les cookies
 axios.defaults.withCredentials = true;
 
+
+
 export interface LoginCredentials {
     email: string;
     password: string;

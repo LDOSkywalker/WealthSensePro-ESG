@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_super_securise';
 
 const authMiddleware = async (req, res, next) => {
     try {
-        // Récupération du token depuis le cookie
+        // Récupération du token depuis le cookie uniquement (plus sécurisé)
         const token = req.cookies.auth_token;
 
         if (!token) {

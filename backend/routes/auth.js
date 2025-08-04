@@ -32,11 +32,11 @@ router.post('/login', async (req, res) => {
             { expiresIn: JWT_EXPIRATION }
         );
 
-        // Stockage du token dans un cookie httpOnly
+        // Stockage du token dans un cookie httpOnly sécurisé
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Compatible cross-domain
             maxAge: 24 * 60 * 60 * 1000 // 24 heures
         });
 
@@ -123,7 +123,7 @@ router.post('/signup', async (req, res) => {
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Compatible cross-domain
             maxAge: 24 * 60 * 60 * 1000
         });
         res.json({
