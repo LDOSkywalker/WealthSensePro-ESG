@@ -22,34 +22,55 @@ router.post('/login', async (req, res) => {
         // Vérification des identifiants avec Firebase Admin
         const userCredential = await admin.auth().getUserByEmail(email);
         
-        // Génération du JWT avec timestamp pour garantir l'unicité
-        const token = jwt.sign(
+                // Génération des tokens
+        const accessToken = jwt.sign(
             { 
-                uid: userCredential.uid,
+                uid: userCredential.uid, 
                 email: userCredential.email,
-                loginTime: Date.now() // Ajouter un timestamp pour garantir l'unicité
+                type: 'access',
+                loginTime: Date.now()
             },
             JWT_SECRET,
-            { expiresIn: JWT_EXPIRATION }
+            { expiresIn: '15m' } // Access token court
+        );
+
+        const refreshToken = jwt.sign(
+            { 
+                uid: userCredential.uid, 
+                email: userCredential.email,
+                type: 'refresh',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' } // Refresh token long
         );
 
         console.log('🔐 === LOGIN RÉUSSI ===');
         console.log('🔐 UID:', userCredential.uid);
         console.log('🔐 Email:', userCredential.email);
-        console.log('🔐 Token généré:', token.substring(0, 20) + '...');
+        console.log('🔐 Access Token généré:', accessToken.substring(0, 20) + '...');
+        console.log('🔐 Refresh Token généré:', refreshToken.substring(0, 20) + '...');
         
-        // Nettoyer l'ancien cookie avant d'en créer un nouveau
-        res.clearCookie('auth_token');
-        console.log('🔐 Ancien cookie nettoyé');
+        // Nettoyer les anciens cookies
+        res.clearCookie('access_token');
+        res.clearCookie('refresh_token');
+        console.log('🔐 Anciens cookies nettoyés');
         
-        // Stockage du token dans un cookie httpOnly
-        res.cookie('auth_token', token, {
+        // Cookies HTTP-Only séparés
+        res.cookie('access_token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 24 * 60 * 60 * 1000 // 24 heures
+            maxAge: 15 * 60 * 1000 // 15 minutes
         });
-        console.log('🔐 Nouveau cookie défini avec sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+        });
+        console.log('🔐 Nouveaux cookies définis');
 
         res.json({
             success: true,
@@ -87,9 +108,70 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Endpoint de refresh token
+router.post('/refresh', async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refresh_token;
+        
+        if (!refreshToken) {
+            return res.status(401).json({
+                success: false,
+                error: 'Refresh token manquant'
+            });
+        }
+
+        // Vérifier le refresh token
+        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        
+        if (decoded.type !== 'refresh') {
+            return res.status(401).json({
+                success: false,
+                error: 'Refresh token invalide'
+            });
+        }
+
+        // Vérifier que l'utilisateur existe toujours
+        const user = await admin.auth().getUser(decoded.uid);
+
+        // Générer un nouveau access token
+        const newAccessToken = jwt.sign(
+            { 
+                uid: user.uid, 
+                email: user.email,
+                type: 'access',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        // Définir le nouveau cookie
+        res.cookie('access_token', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 15 * 60 * 1000 // 15 minutes
+        });
+
+        console.log('🔄 Access token rafraîchi pour:', user.email);
+
+        res.json({
+            success: true,
+            message: 'Token rafraîchi'
+        });
+    } catch (error) {
+        console.error('❌ Erreur refresh token:', error);
+        res.status(401).json({
+            success: false,
+            error: 'Refresh token invalide'
+        });
+    }
+});
+
 // Endpoint de logout
 router.post('/logout', (req, res) => {
-    res.clearCookie('auth_token');
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
     res.json({ success: true });
 });
 
@@ -125,24 +207,46 @@ router.post('/signup', async (req, res) => {
         const db = admin.firestore();
         await db.collection('users').doc(userRecord.uid).set(userData);
 
-        // Génération du JWT avec timestamp pour garantir l'unicité
-        const token = jwt.sign(
+        // Génération des tokens
+        const accessToken = jwt.sign(
             { 
                 uid: userRecord.uid, 
                 email: userRecord.email,
-                loginTime: Date.now() // Ajouter un timestamp pour garantir l'unicité
+                type: 'access',
+                loginTime: Date.now()
             },
             JWT_SECRET,
-            { expiresIn: JWT_EXPIRATION }
+            { expiresIn: '15m' } // Access token court
         );
-        // Nettoyer l'ancien cookie avant d'en créer un nouveau
-        res.clearCookie('auth_token');
+
+        const refreshToken = jwt.sign(
+            { 
+                uid: userRecord.uid, 
+                email: userRecord.email,
+                type: 'refresh',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' } // Refresh token long
+        );
+
+        // Nettoyer les anciens cookies
+        res.clearCookie('access_token');
+        res.clearCookie('refresh_token');
         
-        res.cookie('auth_token', token, {
+        // Cookies HTTP-Only séparés
+        res.cookie('access_token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 24 * 60 * 60 * 1000
+            maxAge: 15 * 60 * 1000 // 15 minutes
+        });
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
         res.json({
             success: true,

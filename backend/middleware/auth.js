@@ -12,13 +12,13 @@ const authMiddleware = async (req, res, next) => {
         console.log('🔍 User-Agent:', req.headers['user-agent']);
         console.log('🔍 Cookies reçus:', Object.keys(req.cookies));
         console.log('🔍 Headers reçus:', Object.keys(req.headers));
-        console.log('🔍 Cookie auth_token présent:', !!req.cookies.auth_token);
+        console.log('🔍 Cookie access_token présent:', !!req.cookies.access_token);
         
         // Récupération du token depuis le cookie
-        const token = req.cookies.auth_token;
+        const token = req.cookies.access_token;
 
         if (!token) {
-            console.error('❌ Pas de token dans les cookies');
+            console.error('❌ Pas de access_token dans les cookies');
             console.log('🔍 === FIN AUTHENTIFICATION - ÉCHEC ===');
             return res.status(401).json({
                 success: false,
@@ -31,9 +31,20 @@ const authMiddleware = async (req, res, next) => {
         try {
             console.log('🔍 Vérification du JWT...');
             decoded = jwt.verify(token, JWT_SECRET);
+            
+            // Vérifier que c'est un access token
+            if (decoded.type !== 'access') {
+                console.error('❌ Token invalide - type incorrect:', decoded.type);
+                return res.status(401).json({
+                    success: false,
+                    error: 'Token invalide'
+                });
+            }
+            
             console.log('🔍 JWT décodé avec succès:', {
                 uid: decoded.uid,
                 email: decoded.email,
+                type: decoded.type,
                 loginTime: decoded.loginTime
             });
         } catch (error) {
