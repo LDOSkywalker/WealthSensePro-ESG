@@ -37,11 +37,13 @@ router.post('/login', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Compatible cross-domain
+            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined, // Partager entre sous-domaines onrender.com
             maxAge: 24 * 60 * 60 * 1000 // 24 heures
         });
 
         res.json({
             success: true,
+            token: token, // Inclure le token pour l'authentification cross-domain
             user: {
                 uid: userCredential.uid,
                 email: userCredential.email
@@ -124,10 +126,12 @@ router.post('/signup', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Compatible cross-domain
+            domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined, // Partager entre sous-domaines onrender.com
             maxAge: 24 * 60 * 60 * 1000
         });
         res.json({
             success: true,
+            token: token, // Inclure le token pour l'authentification cross-domain
             user: {
                 uid: userRecord.uid,
                 email: userRecord.email,

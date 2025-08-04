@@ -5,11 +5,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_super_securise';
 
 const authMiddleware = async (req, res, next) => {
     try {
-        // Récupération du token depuis le cookie uniquement (plus sécurisé)
-        const token = req.cookies.auth_token;
+        // Récupération du token depuis le cookie ou le header Authorization
+        let token = req.cookies.auth_token;
+        
+        // Si pas de token dans les cookies, essayer le header Authorization
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
 
         if (!token) {
-            console.error('❌ Pas de token dans les cookies');
+            console.error('❌ Pas de token dans les cookies ou headers');
             return res.status(401).json({
                 success: false,
                 error: 'Non authentifié'
