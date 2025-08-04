@@ -14,6 +14,15 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '24h';
 
+// Configuration des origines autorisées
+const allowedOrigins = [
+    'http://localhost:5173', // Dev local
+    'https://develop--wealthsense-esg.netlify.app', // 
+    'https://wealthsense-esg.netlify.app', // Preprod
+    'https://wealthsense-impact.com', // Prod
+    process.env.FRONTEND_URL // URL configurée dans Render
+].filter(Boolean); // Supprime les valeurs undefined
+
 // Endpoint de login
 router.post('/login', async (req, res) => {
     try {
