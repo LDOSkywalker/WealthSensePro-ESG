@@ -26,7 +26,25 @@ axios.interceptors.request.use(
     }
 );
 
-// Intercepteur pour logger toutes les réponses
+// Variables pour l'auto-refresh
+let isRefreshing = false;
+let failedQueue: Array<{
+    resolve: (value?: any) => void;
+    reject: (error?: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(({ resolve, reject }) => {
+        if (error) {
+            reject(error);
+        } else {
+            resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+// Intercepteur pour logger toutes les réponses et gérer l'auto-refresh
 axios.interceptors.response.use(
     (response) => {
         console.log('✅ Réponse reçue:', {
@@ -34,14 +52,57 @@ axios.interceptors.response.use(
             status: response.status,
             data: response.data
         });
+        
         return response;
     },
-    (error) => {
+    async (error) => {
+        const originalRequest = error.config;
+        
         console.error('❌ Erreur réponse:', {
             url: error.config?.url,
             status: error.response?.status,
             data: error.response?.data
         });
+
+        // Si c'est une erreur 401 et qu'on n'est pas déjà en train de rafraîchir
+        if (error.response?.status === 401 && !isRefreshing && !originalRequest._retry) {
+            if (isRefreshing) {
+                // Si on est déjà en train de rafraîchir, on met en queue
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then(() => {
+                    return axios(originalRequest);
+                }).catch((err) => {
+                    return Promise.reject(err);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                console.log('🔄 Tentative de refresh token...');
+                const response = await axios.post(`${API_URL}/api/auth/refresh`, {}, { 
+                    withCredentials: true 
+                });
+                
+                if (response.data.success) {
+                    console.log('✅ Token rafraîchi avec succès');
+                    processQueue(null, response.data.token);
+                    return axios(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error('❌ Erreur lors du refresh:', refreshError);
+                processQueue(refreshError, null);
+                
+                // Rediriger vers login si le refresh échoue
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
         return Promise.reject(error);
     }
 );
@@ -108,5 +169,15 @@ export const authService = {
 
     async resetPassword(email: string): Promise<void> {
         await axios.post(`${API_URL}/auth/reset-password`, { email }, { withCredentials: true });
+    },
+
+    async refreshToken(): Promise<boolean> {
+        try {
+            const response = await axios.post(`${API_URL}/api/auth/refresh`, {}, { withCredentials: true });
+            return response.data.success;
+        } catch (error) {
+            console.error('❌ Erreur refresh token:', error);
+            return false;
+        }
     }
 }; 
