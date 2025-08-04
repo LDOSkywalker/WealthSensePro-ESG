@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         if (!success) {
           console.log('❌ Échec auto-refresh, déconnexion...');
           setCurrentUser(null);
-          window.location.href = '/login';
+          window.location.href = '/';
         }
       }
     }, 10 * 60 * 1000); // 10 minutes
@@ -68,9 +68,9 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setCurrentUser(null);
       setLoading(false);
       
-      // Si on est sur /dashboard et pas connecté, rediriger vers /login
+      // Si on est sur /dashboard et pas connecté, rediriger vers la page d'accueil
       if (window.location.pathname === '/dashboard') {
-        window.location.href = '/login';
+        window.location.href = '/';
       }
     });
 

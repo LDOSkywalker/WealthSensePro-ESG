@@ -95,8 +95,8 @@ axios.interceptors.response.use(
                 console.error('❌ Erreur lors du refresh:', refreshError);
                 processQueue(refreshError, null);
                 
-                // Rediriger vers login si le refresh échoue
-                window.location.href = '/login';
+                // Rediriger vers la page d'accueil si le refresh échoue
+                window.location.href = '/';
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
