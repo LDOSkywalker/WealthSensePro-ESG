@@ -82,7 +82,7 @@ axios.interceptors.response.use(
 
             try {
                 console.log('🔄 Tentative de refresh token...');
-                const response = await axios.post(`${API_URL}/api/auth/refresh`, {}, { 
+                const response = await axios.post(`${API_URL}/auth/refresh`, {}, { 
                     withCredentials: true 
                 });
                 
@@ -173,7 +173,7 @@ export const authService = {
 
     async refreshToken(): Promise<boolean> {
         try {
-            const response = await axios.post(`${API_URL}/api/auth/refresh`, {}, { withCredentials: true });
+            const response = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
             return response.data.success;
         } catch (error) {
             console.error('❌ Erreur refresh token:', error);
