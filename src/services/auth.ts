@@ -41,17 +41,17 @@ export const authService = {
     },
 
     async signup(payload: SignupPayload): Promise<User> {
-        const response = await axios.post(`${API_URL}/auth/signup`, payload);
+        const response = await axios.post(`${API_URL}/auth/signup`, payload, { withCredentials: true });
         return response.data.user;
     },
 
     async logout(): Promise<void> {
-        await axios.post(`${API_URL}/auth/logout`);
+        await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
     },
 
     async checkAuth(): Promise<User | null> {
         try {
-            const response = await axios.get(`${API_URL}/protected`);
+            const response = await axios.get(`${API_URL}/protected`, { withCredentials: true });
             return response.data.user;
         } catch (error) {
             return null;
@@ -59,14 +59,14 @@ export const authService = {
     },
 
     async updateProfile(firstName: string, lastName: string): Promise<void> {
-        await axios.put(`${API_URL}/auth/profile`, { firstName, lastName });
+        await axios.put(`${API_URL}/auth/profile`, { firstName, lastName }, { withCredentials: true });
     },
 
     async updatePassword(newPassword: string): Promise<void> {
-        await axios.put(`${API_URL}/auth/password`, { newPassword });
+        await axios.put(`${API_URL}/auth/password`, { newPassword }, { withCredentials: true });
     },
 
     async resetPassword(email: string): Promise<void> {
-        await axios.post(`${API_URL}/auth/reset-password`, { email });
+        await axios.post(`${API_URL}/auth/reset-password`, { email }, { withCredentials: true });
     }
 }; 
