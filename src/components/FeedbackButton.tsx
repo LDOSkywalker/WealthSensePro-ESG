@@ -39,6 +39,7 @@ const FeedbackButton: React.FC<FeedbackButtonProps> = ({ darkMode = true }) => {
         method: 'POST',
         url: `${BACKEND_URL}/api/feedback`,
         data: payload,
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'

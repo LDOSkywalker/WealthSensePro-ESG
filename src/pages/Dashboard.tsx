@@ -150,6 +150,7 @@ const Dashboard: React.FC = () => {
         url: webhookUrl,
         params,
         timeout: 60000,
+        withCredentials: true,
         headers: {
           'Accept': 'application/json'
         }
