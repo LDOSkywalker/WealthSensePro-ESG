@@ -12,13 +12,19 @@ const authMiddleware = async (req, res, next) => {
         console.log('🔍 User-Agent:', req.headers['user-agent']);
         console.log('🔍 Cookies reçus:', Object.keys(req.cookies));
         console.log('🔍 Headers reçus:', Object.keys(req.headers));
-        console.log('🔍 Cookie access_token présent:', !!req.cookies.access_token);
+        console.log('🔍 Authorization header présent:', !!req.headers.authorization);
         
-        // Récupération du token depuis le cookie
-        const token = req.cookies.access_token;
+        // Récupération du token depuis le header Authorization
+        const authHeader = req.headers.authorization;
+        let token = null;
+        
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7);
+            console.log('🔍 Token récupéré depuis Authorization header');
+        }
 
         if (!token) {
-            console.error('❌ Pas de access_token dans les cookies');
+            console.error('❌ Pas de token dans Authorization header');
             console.log('🔍 === FIN AUTHENTIFICATION - ÉCHEC ===');
             return res.status(401).json({
                 success: false,

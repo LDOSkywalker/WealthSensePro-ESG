@@ -56,24 +56,19 @@ router.post('/login', async (req, res) => {
         res.clearCookie('refresh_token');
         console.log('🔐 Anciens cookies nettoyés');
         
-        // Cookies HTTP-Only séparés
-        res.cookie('access_token', accessToken, {
+        // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
+        res.cookie('__Host-refresh_token', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax', // Toujours 'lax' pour compatibilité
-            maxAge: 15 * 60 * 1000 // 15 minutes
-        });
-
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax', // Toujours 'lax' pour compatibilité
+            secure: true,
+            sameSite: 'none',
+            path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
-        console.log('🔐 Nouveaux cookies définis avec sameSite: lax');
+        console.log('🔐 Cookie refresh_token défini (HttpOnly + Secure + SameSite=None)');
 
         res.json({
             success: true,
+            access_token: accessToken,
             user: {
                 uid: userCredential.uid,
                 email: userCredential.email
@@ -111,7 +106,28 @@ router.post('/login', async (req, res) => {
 // Endpoint de refresh token
 router.post('/refresh', async (req, res) => {
     try {
-        const refreshToken = req.cookies.refresh_token;
+        // Vérification CSRF
+        const origin = req.headers.origin;
+        const referer = req.headers.referer;
+        const requestedWith = req.headers['x-requested-with'];
+        
+        // Vérifier l'origine
+        if (!origin || !allowedOrigins.includes(origin)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Origin non autorisé'
+            });
+        }
+        
+        // Vérifier le header personnalisé
+        if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
+            return res.status(403).json({
+                success: false,
+                error: 'Header X-Requested-With requis'
+            });
+        }
+
+        const refreshToken = req.cookies['__Host-refresh_token'];
         
         if (!refreshToken) {
             return res.status(401).json({
@@ -145,19 +161,12 @@ router.post('/refresh', async (req, res) => {
             { expiresIn: '15m' }
         );
 
-        // Définir le nouveau cookie
-        res.cookie('access_token', newAccessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax', // Toujours 'lax' pour compatibilité
-            maxAge: 15 * 60 * 1000 // 15 minutes
-        });
-
         console.log('🔄 Access token rafraîchi pour:', user.email);
 
         res.json({
             success: true,
-            message: 'Token rafraîchi'
+            access_token: newAccessToken,
+            exp: Math.floor(Date.now() / 1000) + (15 * 60) // Expiration en timestamp
         });
     } catch (error) {
         console.error('❌ Erreur refresh token:', error);
@@ -170,8 +179,35 @@ router.post('/refresh', async (req, res) => {
 
 // Endpoint de logout
 router.post('/logout', (req, res) => {
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+    // Vérification CSRF
+    const origin = req.headers.origin;
+    const requestedWith = req.headers['x-requested-with'];
+    
+    // Vérifier l'origine
+    if (!origin || !allowedOrigins.includes(origin)) {
+        return res.status(403).json({
+            success: false,
+            error: 'Origin non autorisé'
+        });
+    }
+    
+    // Vérifier le header personnalisé
+    if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
+        return res.status(403).json({
+            success: false,
+            error: 'Header X-Requested-With requis'
+        });
+    }
+
+    // Invalider le refresh token en supprimant le cookie
+    res.clearCookie('__Host-refresh_token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+        maxAge: 0
+    });
+    
     res.json({ success: true });
 });
 
@@ -230,26 +266,20 @@ router.post('/signup', async (req, res) => {
             { expiresIn: '7d' } // Refresh token long
         );
 
-        // Nettoyer les anciens cookies
-        res.clearCookie('access_token');
-        res.clearCookie('refresh_token');
+        // Nettoyer l'ancien cookie
+        res.clearCookie('__Host-refresh_token');
         
-        // Cookies HTTP-Only séparés
-        res.cookie('access_token', accessToken, {
+        // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
+        res.cookie('__Host-refresh_token', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax', // Toujours 'lax' pour compatibilité
-            maxAge: 15 * 60 * 1000 // 15 minutes
-        });
-
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax', // Toujours 'lax' pour compatibilité
+            secure: true,
+            sameSite: 'none',
+            path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
         res.json({
             success: true,
+            access_token: accessToken,
             user: {
                 uid: userRecord.uid,
                 email: userRecord.email,

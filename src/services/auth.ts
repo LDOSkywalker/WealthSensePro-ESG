@@ -18,6 +18,16 @@ axios.interceptors.request.use(
             withCredentials: config.withCredentials,
             headers: config.headers
         });
+        
+        // Ajouter le token depuis la mémoire si disponible
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
+            console.log('🔐 Token ajouté depuis la mémoire');
+        }
+        
+        // Ajouter le header X-Requested-With pour CSRF
+        config.headers['X-Requested-With'] = 'XMLHttpRequest';
+        
         return config;
     },
     (error) => {
@@ -29,6 +39,7 @@ axios.interceptors.request.use(
 // Variables pour l'auto-refresh
 let isRefreshing = false;
 let refreshFailed = false;
+let accessToken: string | null = null;
 let failedQueue: Array<{
     resolve: (value?: any) => void;
     reject: (error?: any) => void;
@@ -96,7 +107,8 @@ axios.interceptors.response.use(
                 
                 if (response.data.success) {
                     console.log('✅ Token rafraîchi avec succès');
-                    processQueue(null, response.data.token);
+                    accessToken = response.data.access_token;
+                    processQueue(null, response.data.access_token);
                     return axios(originalRequest);
                 }
             } catch (refreshError) {
@@ -137,7 +149,14 @@ export interface SignupPayload {
 export const authService = {
     async login(credentials: LoginCredentials): Promise<User> {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, credentials);
+            const response = await axios.post(`${API_URL}/auth/login`, credentials, {
+                withCredentials: true
+            });
+            
+            // Stocker le token en mémoire
+            accessToken = response.data.access_token;
+            console.log('🔐 Access token stocké en mémoire');
+            
             return response.data.user;
         } catch (error: any) {
             if (error.response?.data?.code) {
@@ -156,6 +175,9 @@ export const authService = {
 
     async logout(): Promise<void> {
         await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
+        // Nettoyer le token en mémoire
+        accessToken = null;
+        console.log('🔐 Access token supprimé de la mémoire');
     },
 
     async checkAuth(): Promise<User | null> {
@@ -183,7 +205,12 @@ export const authService = {
     async refreshToken(): Promise<boolean> {
         try {
             const response = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
-            return response.data.success;
+            if (response.data.success) {
+                accessToken = response.data.access_token;
+                console.log('🔐 Nouveau access token stocké en mémoire');
+                return true;
+            }
+            return false;
         } catch (error) {
             console.error('❌ Erreur refresh token:', error);
             return false;
