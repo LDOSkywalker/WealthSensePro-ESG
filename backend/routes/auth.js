@@ -22,16 +22,20 @@ router.post('/login', async (req, res) => {
         // Vérification des identifiants avec Firebase Admin
         const userCredential = await admin.auth().getUserByEmail(email);
         
-        // Génération du JWT
+        // Génération du JWT avec timestamp pour garantir l'unicité
         const token = jwt.sign(
             { 
                 uid: userCredential.uid,
-                email: userCredential.email
+                email: userCredential.email,
+                loginTime: Date.now() // Ajouter un timestamp pour garantir l'unicité
             },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRATION }
         );
 
+        // Nettoyer l'ancien cookie avant d'en créer un nouveau
+        res.clearCookie('auth_token');
+        
         // Stockage du token dans un cookie httpOnly
         res.cookie('auth_token', token, {
             httpOnly: true,
@@ -114,12 +118,19 @@ router.post('/signup', async (req, res) => {
         const db = admin.firestore();
         await db.collection('users').doc(userRecord.uid).set(userData);
 
-        // Génération du JWT
+        // Génération du JWT avec timestamp pour garantir l'unicité
         const token = jwt.sign(
-            { uid: userRecord.uid, email: userRecord.email },
+            { 
+                uid: userRecord.uid, 
+                email: userRecord.email,
+                loginTime: Date.now() // Ajouter un timestamp pour garantir l'unicité
+            },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRATION }
         );
+        // Nettoyer l'ancien cookie avant d'en créer un nouveau
+        res.clearCookie('auth_token');
+        
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
