@@ -14,41 +14,115 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '24h';
 
+// Configuration des origines autorisées
+const allowedOrigins = [
+    'http://localhost:5173', // Dev local
+    'https://develop--wealthsense-esg.netlify.app', // 
+    'https://wealthsense-esg.netlify.app', // Preprod
+    'https://wealthsense-impact.com', // Prod
+    process.env.FRONTEND_URL // URL configurée dans Render
+].filter(Boolean); // Supprime les valeurs undefined
+
 // Endpoint de login
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Vérification des identifiants avec Firebase Admin
-        const userCredential = await admin.auth().getUserByEmail(email);
-        
-        // Génération du JWT
-        const token = jwt.sign(
-            { 
-                uid: userCredential.uid,
-                email: userCredential.email
-            },
-            JWT_SECRET,
-            { expiresIn: JWT_EXPIRATION }
+        console.log('🔐 === DÉBUT LOGIN ===');
+        console.log('🔐 Email:', email);
+        console.log('🔐 Password fourni:', password ? 'OUI' : 'NON');
+
+        // 🔐 ÉTAPE 1 : Vérification des credentials avec Firebase Auth REST API
+        console.log('🔐 Vérification des credentials avec Firebase Auth REST API...');
+        const authResponse = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_WEB_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email, 
+                    password, 
+                    returnSecureToken: false 
+                })
+            }
         );
 
-        // Stockage du token dans un cookie httpOnly
-        res.cookie('auth_token', token, {
+        const authData = await authResponse.json();
+        
+        if (!authResponse.ok) {
+            console.error('❌ Erreur Firebase Auth:', authData);
+            return res.status(401).json({
+                success: false,
+                error: 'Email ou mot de passe incorrect',
+                code: 'auth/invalid-credential'
+            });
+        }
+
+        console.log('✅ Credentials vérifiés avec succès');
+
+        // 🔐 ÉTAPE 2 : Récupération des infos utilisateur avec Firebase Admin
+        console.log('🔐 Récupération des infos utilisateur...');
+        const userCredential = await admin.auth().getUserByEmail(email);
+        
+        console.log('✅ Utilisateur trouvé:', userCredential.uid);
+
+        // 🔐 ÉTAPE 3 : Génération des tokens JWT (flux hybride préservé)
+        console.log('🔐 Génération des tokens JWT...');
+        const accessToken = jwt.sign(
+            { 
+                uid: userCredential.uid, 
+                email: userCredential.email,
+                type: 'access',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '15m' } // Access token court
+        );
+
+        const refreshToken = jwt.sign(
+            { 
+                uid: userCredential.uid, 
+                email: userCredential.email,
+                type: 'refresh',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' } // Refresh token long
+        );
+
+        console.log('🔐 === LOGIN RÉUSSI ===');
+        console.log('🔐 UID:', userCredential.uid);
+        console.log('🔐 Email:', userCredential.email);
+        console.log('🔐 Access Token généré:', accessToken.substring(0, 20) + '...');
+        console.log('🔐 Refresh Token généré:', refreshToken.substring(0, 20) + '...');
+        
+        // 🔐 ÉTAPE 4 : Stockage sécurisé (flux hybride préservé)
+        // Nettoyer les anciens cookies
+        res.clearCookie('access_token');
+        res.clearCookie('refresh_token');
+        console.log('🔐 Anciens cookies nettoyés');
+        
+        // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
+        res.cookie('__Host-refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
-            maxAge: 24 * 60 * 60 * 1000 // 24 heures
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
+        console.log('🔐 Cookie refresh_token défini (HttpOnly + Secure + SameSite=None)');
 
+        // 🔐 ÉTAPE 5 : Réponse (flux hybride préservé)
         res.json({
             success: true,
+            access_token: accessToken,
             user: {
                 uid: userCredential.uid,
                 email: userCredential.email
             }
         });
     } catch (error) {
-        console.error('Erreur de login:', error);
+        console.error('❌ Erreur de login:', error);
         
         // Gestion des erreurs Firebase
         if (error.code === 'auth/user-not-found') {
@@ -76,9 +150,111 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Endpoint de refresh token
+router.post('/refresh', async (req, res) => {
+    try {
+        // Vérification CSRF
+        const origin = req.headers.origin;
+        const referer = req.headers.referer;
+        const requestedWith = req.headers['x-requested-with'];
+        
+        // Vérifier l'origine
+        if (!origin || !allowedOrigins.includes(origin)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Origin non autorisé'
+            });
+        }
+        
+        // Vérifier le header personnalisé
+        if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
+            return res.status(403).json({
+                success: false,
+                error: 'Header X-Requested-With requis'
+            });
+        }
+
+        const refreshToken = req.cookies['__Host-refresh_token'];
+        
+        if (!refreshToken) {
+            return res.status(401).json({
+                success: false,
+                error: 'Refresh token manquant'
+            });
+        }
+
+        // Vérifier le refresh token
+        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        
+        if (decoded.type !== 'refresh') {
+            return res.status(401).json({
+                success: false,
+                error: 'Refresh token invalide'
+            });
+        }
+
+        // Vérifier que l'utilisateur existe toujours
+        const user = await admin.auth().getUser(decoded.uid);
+
+        // Générer un nouveau access token
+        const newAccessToken = jwt.sign(
+            { 
+                uid: user.uid, 
+                email: user.email,
+                type: 'access',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        console.log('🔄 Access token rafraîchi pour:', user.email);
+
+        res.json({
+            success: true,
+            access_token: newAccessToken,
+            exp: Math.floor(Date.now() / 1000) + (15 * 60) // Expiration en timestamp
+        });
+    } catch (error) {
+        console.error('❌ Erreur refresh token:', error);
+        res.status(401).json({
+            success: false,
+            error: 'Refresh token invalide'
+        });
+    }
+});
+
 // Endpoint de logout
 router.post('/logout', (req, res) => {
-    res.clearCookie('auth_token');
+    // Vérification CSRF
+    const origin = req.headers.origin;
+    const requestedWith = req.headers['x-requested-with'];
+    
+    // Vérifier l'origine
+    if (!origin || !allowedOrigins.includes(origin)) {
+        return res.status(403).json({
+            success: false,
+            error: 'Origin non autorisé'
+        });
+    }
+    
+    // Vérifier le header personnalisé
+    if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
+        return res.status(403).json({
+            success: false,
+            error: 'Header X-Requested-With requis'
+        });
+    }
+
+    // Invalider le refresh token en supprimant le cookie
+    res.clearCookie('__Host-refresh_token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+        maxAge: 0
+    });
+    
     res.json({ success: true });
 });
 
@@ -114,20 +290,43 @@ router.post('/signup', async (req, res) => {
         const db = admin.firestore();
         await db.collection('users').doc(userRecord.uid).set(userData);
 
-        // Génération du JWT
-        const token = jwt.sign(
-            { uid: userRecord.uid, email: userRecord.email },
+        // Génération des tokens
+        const accessToken = jwt.sign(
+            { 
+                uid: userRecord.uid, 
+                email: userRecord.email,
+                type: 'access',
+                loginTime: Date.now()
+            },
             JWT_SECRET,
-            { expiresIn: JWT_EXPIRATION }
+            { expiresIn: '15m' } // Access token court
         );
-        res.cookie('auth_token', token, {
+
+        const refreshToken = jwt.sign(
+            { 
+                uid: userRecord.uid, 
+                email: userRecord.email,
+                type: 'refresh',
+                loginTime: Date.now()
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' } // Refresh token long
+        );
+
+        // Nettoyer l'ancien cookie
+        res.clearCookie('__Host-refresh_token');
+        
+        // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
+        res.cookie('__Host-refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
-            maxAge: 24 * 60 * 60 * 1000
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
         res.json({
             success: true,
+            access_token: accessToken,
             user: {
                 uid: userRecord.uid,
                 email: userRecord.email,

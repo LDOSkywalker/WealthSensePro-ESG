@@ -79,6 +79,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ selectedTopic, darkMode =
         url: `${API_URL}/api/webhook`,
         params,
         timeout: 60000,
+        withCredentials: true,
         headers: {
           'Accept': 'application/json'
         }

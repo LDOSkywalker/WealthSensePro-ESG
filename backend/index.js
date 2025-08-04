@@ -65,7 +65,7 @@ const allowedOrigins = [
     'http://localhost:5173', // Dev local
     'https://develop--wealthsense-esg.netlify.app' , // 
     'https://wealthsense-esg.netlify.app', // Preprod
-    'https://wealthsense-impact.com/', // Prod
+    'https://wealthsense-impact.com', // Prod
     // Branche temporaire Netlify à configurer
     process.env.FRONTEND_URL // URL configurée dans Render
 ].filter(Boolean); // Supprime les valeurs undefined
@@ -90,6 +90,17 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+
+// Headers de sécurité
+app.use((req, res, next) => {
+    res.setHeader('X-Powered-By', 'WealthSense API');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+    next();
+});
 
 // Routes d'authentification
 app.use('/api/auth', authRoutes);

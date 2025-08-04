@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import axios from 'axios';
 import { authService } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,19 +34,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, darkMode =
   
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/profile`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await axios.get(`${BACKEND_URL}/api/auth/profile`, {
+        withCredentials: true
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération du profil');
-      }
-
-      const userData = await response.json();
+      const userData = response.data;
       setFirstName(userData.firstName || '');
       setLastName(userData.lastName || '');
       setEmail(userData.email || '');

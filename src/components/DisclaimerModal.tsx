@@ -66,7 +66,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({
 
         <div className={`space-y-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           <p>
-            Bienvenue sur l'assistant IA dédié à la gestion de patrimoine proposé par Meyon.
+            Bienvenue sur l'assistant IA dédié à la finance responsable proposé par Meyon.
           </p>
 
           <p>
