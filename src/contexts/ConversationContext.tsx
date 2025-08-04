@@ -51,13 +51,16 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
     try {
       setLoading(true);
       // Charger les conversations de l'utilisateur
-      const conversationsResponse = await axios.get(`${API_URL}/api/conversations`, { params: { userId: currentUser.uid } });
+      const conversationsResponse = await axios.get(`${API_URL}/api/conversations`, { 
+        params: { userId: currentUser.uid },
+        withCredentials: true 
+      });
       const conversationsData = conversationsResponse.data;
       // Charger les messages pour chaque conversation
       const conversationsWithMessages = await Promise.all(
         conversationsData.map(async (conversation: Conversation) => {
           try {
-            const messagesResponse = await axios.get(`${API_URL}/api/messages/` + conversation.id);
+            const messagesResponse = await axios.get(`${API_URL}/api/messages/` + conversation.id, { withCredentials: true });
             return {
               ...conversation,
               messages: messagesResponse.data
@@ -87,7 +90,7 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
   const loadConversationMessages = async (conversationId: string) => {
     if (!currentUser) return;
     try {
-      const response = await axios.get(`${API_URL}/api/messages/` + conversationId);
+      const response = await axios.get(`${API_URL}/api/messages/` + conversationId, { withCredentials: true });
       setCurrentConversation(prev => prev ? {
         ...prev,
         messages: response.data
@@ -155,7 +158,7 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
     try {
       await axios.put(`${API_URL}/api/conversations/` + conversationId, {
         title: newTitle
-      });
+      }, { withCredentials: true });
       setConversations(prev => prev.map(conv =>
         conv.id === conversationId ? { ...conv, title: newTitle } : conv
       ));
@@ -172,7 +175,7 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
   const deleteConversation = async (conversationId: string) => {
     if (!currentUser) throw new Error('Utilisateur non connecté');
     try {
-      const response = await axios.delete(`${API_URL}/api/conversations/` + conversationId);
+      const response = await axios.delete(`${API_URL}/api/conversations/` + conversationId, { withCredentials: true });
       if (response.status === 200) {
         setConversations(prev => prev.filter(conv => conv.id !== conversationId));
         if (currentConversation?.id === conversationId) {
@@ -196,7 +199,7 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
     }
     try {
       setLoading(true);
-      const messagesResponse = await axios.get(`${API_URL}/api/messages/` + conversation.id);
+      const messagesResponse = await axios.get(`${API_URL}/api/messages/` + conversation.id, { withCredentials: true });
       setCurrentConversation({
         ...conversation,
         messages: messagesResponse.data
