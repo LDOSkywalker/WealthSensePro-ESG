@@ -30,8 +30,8 @@ interface ConversationProviderProps {
 }
 
 const API_URL = import.meta.env.PROD 
-    ? 'https://wealthsensepro-esg.onrender.com/api'  // URL de production AVEC /api
-    : import.meta.env.VITE_API_URL || 'http://localhost:3006/api';  // URL de développement AVEC /api
+    ? 'https://wealthsensepro-esg.onrender.com'  // URL de production SANS /api
+    : import.meta.env.VITE_API_URL || 'http://localhost:3006';  // URL de développement SANS /api
 
 export const ConversationProvider: React.FC<ConversationProviderProps> = ({ children }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
