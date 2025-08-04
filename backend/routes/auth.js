@@ -37,7 +37,6 @@ router.post('/login', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            domain: process.env.NODE_ENV === 'production' ? '.wealthsenseimpact.com' : undefined,
             maxAge: 24 * 60 * 60 * 1000 // 24 heures
         });
 
@@ -125,7 +124,6 @@ router.post('/signup', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            domain: process.env.NODE_ENV === 'production' ? '.wealthsenseimpact.com' : undefined,
             maxAge: 24 * 60 * 60 * 1000
         });
         res.json({
