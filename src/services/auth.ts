@@ -28,6 +28,7 @@ axios.interceptors.request.use(
 
 // Variables pour l'auto-refresh
 let isRefreshing = false;
+let refreshFailed = false;
 let failedQueue: Array<{
     resolve: (value?: any) => void;
     reject: (error?: any) => void;
@@ -65,7 +66,14 @@ axios.interceptors.response.use(
         });
 
         // Si c'est une erreur 401 et qu'on n'est pas déjà en train de rafraîchir
-        if (error.response?.status === 401 && !isRefreshing && !originalRequest._retry) {
+        if (error.response?.status === 401 && !isRefreshing && !originalRequest._retry && !refreshFailed) {
+            // Éviter la boucle infinie pour les requêtes de refresh
+            if (originalRequest.url?.includes('/auth/refresh')) {
+                console.log('❌ Refresh token échoué, arrêt de la boucle');
+                refreshFailed = true;
+                return Promise.reject(error);
+            }
+
             if (isRefreshing) {
                 // Si on est déjà en train de rafraîchir, on met en queue
                 return new Promise((resolve, reject) => {
@@ -94,9 +102,10 @@ axios.interceptors.response.use(
             } catch (refreshError) {
                 console.error('❌ Erreur lors du refresh:', refreshError);
                 processQueue(refreshError, null);
+                refreshFailed = true;
                 
-                // Rediriger vers la page d'accueil si le refresh échoue
-                window.location.href = '/';
+                // Arrêter la boucle infinie
+                console.log('🛑 Arrêt de la boucle de refresh');
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
