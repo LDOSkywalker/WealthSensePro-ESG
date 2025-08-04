@@ -38,7 +38,7 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
   // Toutes les requêtes axios utilisent withCredentials: true (cookie JWT)
   axios.defaults.withCredentials = true;
@@ -85,9 +85,12 @@ export const ConversationProvider: React.FC<ConversationProviderProps> = ({ chil
   };
 
   useEffect(() => {
-    loadConversations();
+    // Attendre que l'authentification soit vérifiée avant de charger les conversations
+    if (!authLoading) {
+      loadConversations();
+    }
     // eslint-disable-next-line
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
   const loadConversationMessages = async (conversationId: string) => {
     if (!currentUser) return;

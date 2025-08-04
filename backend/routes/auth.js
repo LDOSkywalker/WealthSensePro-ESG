@@ -35,8 +35,8 @@ router.post('/login', async (req, res) => {
         // Stockage du token dans un cookie httpOnly
         res.cookie('auth_token', token, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 24 heures
         });
 
@@ -122,8 +122,8 @@ router.post('/signup', async (req, res) => {
         );
         res.cookie('auth_token', token, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000
         });
         res.json({
