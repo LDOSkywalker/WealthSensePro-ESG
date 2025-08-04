@@ -33,16 +33,23 @@ router.post('/login', async (req, res) => {
             { expiresIn: JWT_EXPIRATION }
         );
 
+        console.log('🔐 === LOGIN RÉUSSI ===');
+        console.log('🔐 UID:', userCredential.uid);
+        console.log('🔐 Email:', userCredential.email);
+        console.log('🔐 Token généré:', token.substring(0, 20) + '...');
+        
         // Nettoyer l'ancien cookie avant d'en créer un nouveau
         res.clearCookie('auth_token');
+        console.log('🔐 Ancien cookie nettoyé');
         
         // Stockage du token dans un cookie httpOnly
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'none', // Toujours 'none' pour cross-domain
             maxAge: 24 * 60 * 60 * 1000 // 24 heures
         });
+        console.log('🔐 Nouveau cookie défini');
 
         res.json({
             success: true,
@@ -134,7 +141,7 @@ router.post('/signup', async (req, res) => {
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'none', // Toujours 'none' pour cross-domain
             maxAge: 24 * 60 * 60 * 1000
         });
         res.json({

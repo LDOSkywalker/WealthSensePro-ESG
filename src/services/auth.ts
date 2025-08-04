@@ -9,6 +9,43 @@ const API_URL = import.meta.env.PROD
 // Configuration d'axios pour inclure les cookies
 axios.defaults.withCredentials = true;
 
+// Intercepteur pour logger toutes les requêtes
+axios.interceptors.request.use(
+    (config) => {
+        console.log('🚀 Requête envoyée:', {
+            url: config.url,
+            method: config.method,
+            withCredentials: config.withCredentials,
+            headers: config.headers
+        });
+        return config;
+    },
+    (error) => {
+        console.error('❌ Erreur requête:', error);
+        return Promise.reject(error);
+    }
+);
+
+// Intercepteur pour logger toutes les réponses
+axios.interceptors.response.use(
+    (response) => {
+        console.log('✅ Réponse reçue:', {
+            url: response.config.url,
+            status: response.status,
+            data: response.data
+        });
+        return response;
+    },
+    (error) => {
+        console.error('❌ Erreur réponse:', {
+            url: error.config?.url,
+            status: error.response?.status,
+            data: error.response?.data
+        });
+        return Promise.reject(error);
+    }
+);
+
 
 
 export interface LoginCredentials {
