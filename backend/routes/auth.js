@@ -60,17 +60,17 @@ router.post('/login', async (req, res) => {
         res.cookie('access_token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'lax', // Toujours 'lax' pour compatibilité
             maxAge: 15 * 60 * 1000 // 15 minutes
         });
 
         res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'lax', // Toujours 'lax' pour compatibilité
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
-        console.log('🔐 Nouveaux cookies définis');
+        console.log('🔐 Nouveaux cookies définis avec sameSite: lax');
 
         res.json({
             success: true,
@@ -149,7 +149,7 @@ router.post('/refresh', async (req, res) => {
         res.cookie('access_token', newAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'lax', // Toujours 'lax' pour compatibilité
             maxAge: 15 * 60 * 1000 // 15 minutes
         });
 
@@ -238,14 +238,14 @@ router.post('/signup', async (req, res) => {
         res.cookie('access_token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'lax', // Toujours 'lax' pour compatibilité
             maxAge: 15 * 60 * 1000 // 15 minutes
         });
 
         res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'lax', // Toujours 'lax' pour compatibilité
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
         res.json({
