@@ -88,14 +88,11 @@ const Dashboard: React.FC = () => {
     // Charger le prénom depuis l'API profil
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/profile`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/profile`, {
+          withCredentials: true
         });
-        if (response.ok) {
-          const data = await response.json();
-          setFirstName(data.firstName || '');
+        if (response.data) {
+          setFirstName(response.data.firstName || '');
         }
       } catch (err) {
         setFirstName('');
