@@ -46,10 +46,10 @@ router.post('/login', async (req, res) => {
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none', // Toujours 'none' pour cross-domain
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 24 heures
         });
-        console.log('🔐 Nouveau cookie défini');
+        console.log('🔐 Nouveau cookie défini avec sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
 
         res.json({
             success: true,
@@ -141,7 +141,7 @@ router.post('/signup', async (req, res) => {
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none', // Toujours 'none' pour cross-domain
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000
         });
         res.json({
