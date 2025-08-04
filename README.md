@@ -127,10 +127,24 @@ VITE_BACKEND_URL=http://localhost:3006
 
 **Backend (variables d'environnement Render) :**
 ```env
-JWT_SECRET=votre_jwt_secret_super_securise
-FIREBASE_WEB_API_KEY=votre_firebase_web_api_key
+FEEDBACK_N8N_URL=votre_url_n8n_feedback
+FIREBASE_AUTH_PROVIDER_X509_CERT_URL=votre_cert_url
+FIREBASE_AUTH_URI=https://securetoken.google.com/votre_project_id
+FIREBASE_CLIENT_EMAIL=votre_client_email
+FIREBASE_CLIENT_ID=votre_client_id
+FIREBASE_CLIENT_X509_CERT_URL=votre_client_cert_url
+FIREBASE_PRIVATE_KEY=votre_private_key
+FIREBASE_PRIVATE_KEY_ID=votre_private_key_id
 FIREBASE_PROJECT_ID=votre_project_id
+FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+FIREBASE_UNIVERSE_DOMAIN=googleapis.com
+FIREBASE_WEB_API_KEY=votre_firebase_web_api_key
 FRONTEND_URL=https://votre-domaine.com
+JWT_EXPIRATION=15m
+JWT_SECRET=votre_jwt_secret_super_securise
+N8N_WEBHOOK_URL=votre_webhook_url
+NODE_ENV=production
+REGISTRATION_WEBHOOK_URL=votre_registration_webhook_url
 ```
 
 4. Démarrez le serveur de développement :

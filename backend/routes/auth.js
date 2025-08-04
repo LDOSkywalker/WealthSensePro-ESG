@@ -28,10 +28,46 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Vérification des identifiants avec Firebase Admin
+        console.log('🔐 === DÉBUT LOGIN ===');
+        console.log('🔐 Email:', email);
+        console.log('🔐 Password fourni:', password ? 'OUI' : 'NON');
+
+        // 🔐 ÉTAPE 1 : Vérification des credentials avec Firebase Auth REST API
+        console.log('🔐 Vérification des credentials avec Firebase Auth REST API...');
+        const authResponse = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_WEB_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email, 
+                    password, 
+                    returnSecureToken: false 
+                })
+            }
+        );
+
+        const authData = await authResponse.json();
+        
+        if (!authResponse.ok) {
+            console.error('❌ Erreur Firebase Auth:', authData);
+            return res.status(401).json({
+                success: false,
+                error: 'Email ou mot de passe incorrect',
+                code: 'auth/invalid-credential'
+            });
+        }
+
+        console.log('✅ Credentials vérifiés avec succès');
+
+        // 🔐 ÉTAPE 2 : Récupération des infos utilisateur avec Firebase Admin
+        console.log('🔐 Récupération des infos utilisateur...');
         const userCredential = await admin.auth().getUserByEmail(email);
         
-                // Génération des tokens
+        console.log('✅ Utilisateur trouvé:', userCredential.uid);
+
+        // 🔐 ÉTAPE 3 : Génération des tokens JWT (flux hybride préservé)
+        console.log('🔐 Génération des tokens JWT...');
         const accessToken = jwt.sign(
             { 
                 uid: userCredential.uid, 
@@ -60,6 +96,7 @@ router.post('/login', async (req, res) => {
         console.log('🔐 Access Token généré:', accessToken.substring(0, 20) + '...');
         console.log('🔐 Refresh Token généré:', refreshToken.substring(0, 20) + '...');
         
+        // 🔐 ÉTAPE 4 : Stockage sécurisé (flux hybride préservé)
         // Nettoyer les anciens cookies
         res.clearCookie('access_token');
         res.clearCookie('refresh_token');
@@ -75,6 +112,7 @@ router.post('/login', async (req, res) => {
         });
         console.log('🔐 Cookie refresh_token défini (HttpOnly + Secure + SameSite=None)');
 
+        // 🔐 ÉTAPE 5 : Réponse (flux hybride préservé)
         res.json({
             success: true,
             access_token: accessToken,
@@ -84,7 +122,7 @@ router.post('/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Erreur de login:', error);
+        console.error('❌ Erreur de login:', error);
         
         // Gestion des erreurs Firebase
         if (error.code === 'auth/user-not-found') {
