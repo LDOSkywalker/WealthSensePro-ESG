@@ -9,23 +9,6 @@ const API_URL = import.meta.env.PROD
 // Configuration d'axios pour inclure les cookies
 axios.defaults.withCredentials = true;
 
-// Intercepteur pour ajouter le token du localStorage si nécessaire
-axios.interceptors.request.use(
-    (config) => {
-        // Si on est sur une requête authentifiée et qu'il n'y a pas de cookie
-        if (config.url && config.url.includes('/api/') && !config.headers.Authorization) {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
-
 
 
 export interface LoginCredentials {
@@ -48,12 +31,6 @@ export const authService = {
     async login(credentials: LoginCredentials): Promise<User> {
         try {
             const response = await axios.post(`${API_URL}/auth/login`, credentials);
-            
-            // Stocker le token pour l'authentification cross-domain
-            if (response.data.token) {
-                localStorage.setItem('auth_token', response.data.token);
-            }
-            
             return response.data.user;
         } catch (error: any) {
             if (error.response?.data?.code) {
@@ -67,19 +44,11 @@ export const authService = {
 
     async signup(payload: SignupPayload): Promise<User> {
         const response = await axios.post(`${API_URL}/auth/signup`, payload, { withCredentials: true });
-        
-        // Stocker le token pour l'authentification cross-domain
-        if (response.data.token) {
-            localStorage.setItem('auth_token', response.data.token);
-        }
-        
         return response.data.user;
     },
 
     async logout(): Promise<void> {
         await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-        // Nettoyer le localStorage
-        localStorage.removeItem('auth_token');
     },
 
     async checkAuth(): Promise<User | null> {
