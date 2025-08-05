@@ -56,3 +56,29 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Améliorations pour les vidéos sur mobile */
+@media (max-width: 640px) {
+  /* Optimiser les contrôles vidéo pour le tactile */
+  video {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Améliorer la zone de clic pour les contrôles vidéo */
+  .video-controls button {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 12px;
+  }
+  
+  /* Optimiser la barre de progression pour le tactile */
+  .video-progress {
+    height: 8px;
+    min-height: 8px;
+  }
+  
+  /* Améliorer la visibilité des contrôles sur mobile */
+  .video-overlay {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  }
+}
