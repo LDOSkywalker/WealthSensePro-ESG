@@ -35,14 +35,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true, useNati
     };
   }, [isPlaying, showControls, useNativeControls]);
 
-  // Timeout pour arrêter le loading si la vidéo ne charge pas
+  // Timeout pour arrêter le loading si la vidéo ne charge pas (plus long sur mobile)
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
       if (isLoading) {
         setIsLoading(false);
         setError("La vidéo prend trop de temps à charger. Vérifiez votre connexion.");
       }
-    }, 10000); // 10 secondes de timeout
+    }, 15000); // 15 secondes de timeout (augmenté pour mobile)
 
     return () => clearTimeout(loadingTimeout);
   }, [isLoading]);
@@ -88,6 +88,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true, useNati
 
   const handleCanPlay = () => {
     console.log('Video can play');
+    setIsLoading(false);
+  };
+
+  const handleCanPlayThrough = () => {
+    console.log('Video can play through');
     setIsLoading(false);
   };
 
@@ -178,11 +183,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true, useNati
               className="w-full aspect-video"
               controls
               playsInline
-              webkit-playsinline=""
-              preload="metadata"
+              webkit-playsinline="true"
+              preload="auto"
               onError={handleError}
               onLoadedData={handleLoadedData}
               onCanPlay={handleCanPlay}
+              onCanPlayThrough={handleCanPlayThrough}
             >
               <source src={url} type="video/mp4" />
               <source src={url} type="video/webm" />
@@ -194,7 +200,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true, useNati
     );
   }
 
-  // Version avec contrôles personnalisés
+  // Version avec contrôles personnalisés (inchangée pour desktop)
   return (
     <div className="my-4 first:mt-0 last:mb-0">
       <div className={`relative rounded-lg overflow-hidden ${
