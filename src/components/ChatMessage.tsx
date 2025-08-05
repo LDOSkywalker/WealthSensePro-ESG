@@ -111,13 +111,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
           </h3>
         )}
         <div className="overflow-x-auto rounded-lg border border-primary">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse min-w-full">
             <thead className={darkMode ? 'bg-dark-card' : 'bg-gray-50'}>
               <tr>
                 {tableData.columns.map((header, i) => (
                   <th 
                     key={i} 
-                    className={`px-4 py-3 text-left text-sm font-medium border-b ${
+                    className={`px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium border-b ${
                       darkMode ? 'border-primary/30 text-white' : 'border-primary/20 text-gray-900'
                     }`}
                   >
@@ -141,7 +141,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
                     return (
                       <td 
                         key={cellIndex} 
-                        className={`px-4 py-3 text-sm border-t ${
+                        className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm border-t ${
                           darkMode ? 'border-primary/30 text-white' : 'border-primary/20 text-gray-900'
                         } ${isNumeric ? 'text-right' : 'text-left'}`}
                       >
@@ -230,7 +230,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
             {chartData.title}
           </h3>
         )}
-        <div className="h-[300px] w-full max-w-[400px] mx-auto">
+        <div className="h-[250px] sm:h-[300px] w-full max-w-[350px] sm:max-w-[400px] mx-auto">
           <Doughnut data={data} options={options} />
         </div>
       </div>
@@ -359,7 +359,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
           }}
           darkMode={darkMode}
         />
-        <div className="h-[400px] w-full">
+        <div className="h-[300px] sm:h-[400px] w-full">
           <Bar data={data} options={options} />
         </div>
       </div>
@@ -508,9 +508,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
   };
   
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} mb-6`}>
-        <div className={`flex flex-col ${isBot ? 'max-w-[85%]' : 'max-w-[85%]'}`}>
+    <div className="max-w-3xl mx-auto px-2 sm:px-0">
+      <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} mb-4 sm:mb-6`}>
+        <div className={`flex flex-col ${isBot ? 'max-w-[90%] sm:max-w-[85%]' : 'max-w-[90%] sm:max-w-[85%]'}`}>
           <div className="flex items-center mb-2">
             {isBot ? (
               <Logo size="sm" className={darkMode ? 'text-white' : 'text-gray-900'} />
@@ -525,7 +525,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
           </div>
           
           <div 
-            className={`p-4 rounded-xl shadow-message ${
+            className={`p-3 sm:p-4 rounded-xl shadow-message ${
               isBot 
                 ? darkMode 
                   ? 'bg-dark-card text-white' 
