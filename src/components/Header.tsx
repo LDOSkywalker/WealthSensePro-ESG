@@ -67,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({
           {showMenuButton && (
             <button
               onClick={onMenuClick}
-              className={`p-1.5 rounded-full transition-colors mr-4 lg:hidden ${
+              className={`p-1.5 rounded-full transition-colors mr-2 sm:mr-4 lg:hidden ${
                 darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
               }`}
             >
@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({
             </button>
           )}
           <div 
-            className="flex items-center cursor-pointer ml-[80px] lg:ml-[80px]" 
+            className="flex items-center cursor-pointer ml-0 sm:ml-2 lg:ml-0" 
             onClick={onLogoClick}
             title="Retour à l'accueil"
           >
@@ -83,29 +83,29 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <button 
             onClick={toggleDarkMode}
-            className={`p-2 rounded-full transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            className={`p-1.5 sm:p-2 rounded-full transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
             title={darkMode ? "Mode clair" : "Mode sombre"}
           >
-            {darkMode ? <Sun className="h-6 w-6 text-white" /> : <Moon className="h-6 w-6 text-gray-700" />}
+            {darkMode ? <Sun className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />}
           </button>
           
           {currentUser && (
             <button 
               onClick={handleLogout}
-              className="p-2 rounded-full transition-colors bg-red-600 hover:bg-red-700"
+              className="p-1.5 sm:p-2 rounded-full transition-colors bg-red-600 hover:bg-red-700"
               title="Déconnexion"
             >
-              <LogOut className="h-6 w-6 text-white" />
+              <LogOut className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </button>
           )}
           
           {currentUser && (
             <button 
               onClick={openProfileModal}
-              className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center cursor-pointer hover:bg-primary-dark transition-colors font-medium text-white"
+              className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary flex items-center justify-center cursor-pointer hover:bg-primary-dark transition-colors font-medium text-white text-sm sm:text-base"
               title="Paramètres du profil"
             >
               {getUserInitials()}

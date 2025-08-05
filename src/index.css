@@ -16,3 +16,69 @@
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out;
 }
+
+/* Améliorations pour mobile */
+@media (max-width: 640px) {
+  /* Éviter le zoom automatique sur iOS */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  /* Améliorer la lisibilité sur mobile */
+  body {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* Optimiser les boutons tactiles */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Améliorer l'espacement des éléments tactiles */
+  .touch-target {
+    padding: 12px;
+  }
+}
+
+/* Améliorer le scroll sur mobile */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Optimiser les transitions pour mobile */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Améliorations pour les vidéos sur mobile */
+@media (max-width: 640px) {
+  /* Optimiser les contrôles vidéo pour le tactile */
+  video {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Améliorer la zone de clic pour les contrôles vidéo */
+  .video-controls button {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 12px;
+  }
+  
+  /* Optimiser la barre de progression pour le tactile */
+  .video-progress {
+    height: 8px;
+    min-height: 8px;
+  }
+  
+  /* Améliorer la visibilité des contrôles sur mobile */
+  .video-overlay {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  }
+}

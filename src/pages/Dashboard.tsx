@@ -298,9 +298,9 @@ const Dashboard: React.FC = () => {
           <main className="flex-1 overflow-hidden flex flex-col lg:pl-0">
             {localMessages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center px-4 py-12">
-                <div className="text-center max-w-2xl mx-auto">
+                <div className="text-center max-w-2xl mx-auto px-4">
                 <h1 
-                    className={`text-4xl font-bold mb-4 transition-opacity duration-1000 ease-in-out ${
+                    className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 transition-opacity duration-1000 ease-in-out ${
                     showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                     } ${darkMode ? 'text-white' : 'text-gray-900'}`}
 >
@@ -311,7 +311,7 @@ const Dashboard: React.FC = () => {
                    , comment puis-je vous aider aujourd'hui ?
                </h1>
                   <p 
-                    className={`text-sm mb-12 transition-opacity duration-1000 ease-in-out delay-200 ${
+                    className={`text-xs sm:text-sm mb-8 sm:mb-12 transition-opacity duration-1000 ease-in-out delay-200 ${
                       showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                     } ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
                   >
@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
                         darkMode 
                           ? 'bg-dark-card text-white placeholder-gray-400 border-gray-800' 
                           : 'bg-white text-gray-900 placeholder-gray-500 border-gray-200'
-                      } border rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[56px] max-h-[200px]`}
+                      } border rounded-xl pl-4 pr-12 py-3 sm:py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[48px] sm:min-h-[56px] max-h-[200px]`}
                       value={message}
                       onChange={handleMessageChange}
                       onKeyDown={handleKeyDown}
@@ -340,37 +340,37 @@ const Dashboard: React.FC = () => {
                     />
                     <button
                       type="submit"
-                      className={`absolute top-1/2 right-4 transform -translate-y-1/2 ${
+                      className={`absolute top-1/2 right-3 sm:right-4 transform -translate-y-1/2 ${
                         message.trim() && !isLoading
                           ? 'text-primary hover:text-primary-dark'
                           : darkMode ? 'text-gray-400' : 'text-gray-400'
                       } transition-colors duration-200`}
                       disabled={!message.trim() || isLoading}
                     >
-                      <Send className="h-5 w-5" />
+                      <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </form>
 
-                  <div className="flex justify-center gap-3 mt-4 mx-4">
+                  <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 mt-4 mx-4">
                     {suggestionButtons.map((button, index) => (
                       <button
                         key={index}
                         onClick={() => handleSuggestionClick(button.prompt)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 ${
                           darkMode
                             ? 'bg-dark-card hover:bg-gray-800 text-white'
                             : 'bg-white hover:bg-gray-50 text-gray-900 shadow-sm'
                         } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
                       >
                         {button.icon}
-                        <span className="text-sm whitespace-nowrap">{button.text}</span>
+                        <span className="text-xs sm:text-sm whitespace-nowrap">{button.text}</span>
                       </button>
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-center text-yellow-500 text-xs mt-6 mx-4 p-3 rounded-lg bg-yellow-500/10">
+                  <div className="flex items-center justify-center text-yellow-500 text-xs mt-4 sm:mt-6 mx-4 p-2 sm:p-3 rounded-lg bg-yellow-500/10">
                     <AlertTriangle className="h-3 w-3 mr-2 flex-shrink-0" />
-                    <p>WealthSenseImpact est en version Beta. Les réponses générées peuvent contenir des erreurs.</p>
+                    <p className="text-xs">WealthSenseImpact est en version Beta. Les réponses générées peuvent contenir des erreurs.</p>
                   </div>
                 </div>
               </div>
@@ -391,7 +391,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className={`border-t ${darkMode ? 'border-gray-800 bg-dark' : 'border-gray-200 bg-white'} shadow-lg`}>
-                  <form onSubmit={handleSubmit} className="relative max-w-3xl mx-auto px-4 py-4">
+                  <form onSubmit={handleSubmit} className="relative max-w-3xl mx-auto px-4 py-3 sm:py-4">
                     <textarea
                       ref={textareaRef}
                       placeholder="Posez votre question à WealthSenseImpact..."
@@ -399,7 +399,7 @@ const Dashboard: React.FC = () => {
                         darkMode 
                           ? 'bg-dark-card text-white placeholder-gray-400 border-gray-800' 
                           : 'bg-white text-gray-900 placeholder-gray-500 border-gray-200'
-                      } border rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[56px] max-h-[200px]`}
+                      } border rounded-xl pl-4 pr-12 py-3 sm:py-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-input transition-all duration-200 resize-none min-h-[48px] sm:min-h-[56px] max-h-[200px]`}
                       value={message}
                       onChange={handleMessageChange}
                       onKeyDown={handleKeyDown}
@@ -408,14 +408,14 @@ const Dashboard: React.FC = () => {
                     />
                     <button
                       type="submit"
-                      className={`absolute top-1/2 right-4 transform -translate-y-1/2 ${
+                      className={`absolute top-1/2 right-3 sm:right-4 transform -translate-y-1/2 ${
                         message.trim() && !isLoading
                           ? 'text-primary hover:text-primary-dark'
                           : darkMode ? 'text-gray-400' : 'text-gray-400'
                       } transition-colors duration-200`}
                       disabled={!message.trim() || isLoading}
                     >
-                      <Send className="h-5 w-5" />
+                      <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </form>
                 </div>
