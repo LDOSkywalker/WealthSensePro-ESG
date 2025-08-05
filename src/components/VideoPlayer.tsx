@@ -4,9 +4,10 @@ import { AlertTriangle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 interface VideoPlayerProps {
   url: string;
   darkMode?: boolean;
+  useNativeControls?: boolean;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true, useNativeControls = false }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -19,7 +20,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
 
   // Masquer les contrôles après 3 secondes d'inactivité
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && !useNativeControls) {
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
@@ -32,7 +33,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [isPlaying, showControls]);
+  }, [isPlaying, showControls, useNativeControls]);
+
+  // Timeout pour arrêter le loading si la vidéo ne charge pas
+  useEffect(() => {
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        setError("La vidéo prend trop de temps à charger. Vérifiez votre connexion.");
+      }
+    }, 10000); // 10 secondes de timeout
+
+    return () => clearTimeout(loadingTimeout);
+  }, [isLoading]);
 
   const handleError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     console.error('Video error:', e);
@@ -65,11 +78,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
   };
 
   const handleLoadedData = () => {
+    console.log('Video loaded successfully');
     setIsLoading(false);
     setError(null);
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
     }
+  };
+
+  const handleCanPlay = () => {
+    console.log('Video can play');
+    setIsLoading(false);
   };
 
   const handleTimeUpdate = () => {
@@ -78,7 +97,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
     }
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -93,7 +115,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
     }
   };
 
-  const handleMuteToggle = () => {
+  const handleMuteToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
@@ -102,6 +127,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (videoRef.current) {
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -119,10 +147,54 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleVideoClick = () => {
-    setShowControls(!showControls);
+  const handleVideoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!useNativeControls) {
+      setShowControls(!showControls);
+    }
   };
 
+  // Version avec contrôles natifs (plus fiable sur mobile)
+  if (useNativeControls) {
+    return (
+      <div className="my-4 first:mt-0 last:mb-0">
+        <div className={`relative rounded-lg overflow-hidden ${
+          darkMode ? 'bg-dark-card' : 'bg-gray-100'
+        }`}>
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+            </div>
+          )}
+          
+          {error ? (
+            <div className="flex items-center gap-2 p-4 text-red-400 bg-red-500/10 rounded-lg">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          ) : (
+            <video
+              ref={videoRef}
+              className="w-full aspect-video"
+              controls
+              playsInline
+              webkit-playsinline=""
+              preload="metadata"
+              onError={handleError}
+              onLoadedData={handleLoadedData}
+              onCanPlay={handleCanPlay}
+            >
+              <source src={url} type="video/mp4" />
+              <source src={url} type="video/webm" />
+              Votre navigateur ne prend pas en charge la lecture de vidéos.
+            </video>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Version avec contrôles personnalisés
   return (
     <div className="my-4 first:mt-0 last:mb-0">
       <div className={`relative rounded-lg overflow-hidden ${
@@ -145,11 +217,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, darkMode = true }) => {
               ref={videoRef}
               className="w-full aspect-video cursor-pointer"
               playsInline
-              webkit-playsinline="true"
+              webkit-playsinline=""
               muted={isMuted}
               preload="metadata"
               onError={handleError}
               onLoadedData={handleLoadedData}
+              onCanPlay={handleCanPlay}
               onTimeUpdate={handleTimeUpdate}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}

@@ -468,6 +468,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode = true, onS
                     <VideoPlayer 
                       url={block.videoUrl || ''} 
                       darkMode={darkMode}
+                      useNativeControls={true} // Utiliser les contrôles natifs pour plus de fiabilité sur mobile
                     />
                   </div>
                 );
