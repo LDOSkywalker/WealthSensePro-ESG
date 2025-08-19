@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/auth');
 const { passwordResetLimiter, loginLimiter, signupLimiter } = require('../middleware/rateLimit');
+const { secureLogger } = require('../utils/secureLogger');
 
 // Vérification de la présence du JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -29,12 +30,10 @@ router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        console.log('🔐 === DÉBUT LOGIN ===');
-        console.log('🔐 Email:', email);
-        console.log('🔐 Password fourni:', password ? 'OUI' : 'NON');
+        secureLogger.operation('login', { email });
 
         // 🔐 ÉTAPE 1 : Vérification des credentials avec Firebase Auth REST API
-        console.log('🔐 Vérification des credentials avec Firebase Auth REST API...');
+        secureLogger.info('Vérification des credentials avec Firebase Auth REST API...');
         const authResponse = await fetch(
             `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_WEB_API_KEY}`,
             {
@@ -51,7 +50,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         const authData = await authResponse.json();
         
         if (!authResponse.ok) {
-            console.error('❌ Erreur Firebase Auth:', authData);
+            secureLogger.error('Erreur Firebase Auth');
             return res.status(401).json({
                 success: false,
                 error: 'Email ou mot de passe incorrect',
@@ -59,16 +58,16 @@ router.post('/login', loginLimiter, async (req, res) => {
             });
         }
 
-        console.log('✅ Credentials vérifiés avec succès');
+        secureLogger.info('Credentials vérifiés avec succès');
 
         // 🔐 ÉTAPE 2 : Récupération des infos utilisateur avec Firebase Admin
-        console.log('🔐 Récupération des infos utilisateur...');
+        secureLogger.info('Récupération des infos utilisateur...');
         const userCredential = await admin.auth().getUserByEmail(email);
         
-        console.log('✅ Utilisateur trouvé:', userCredential.uid);
+        secureLogger.info('Utilisateur trouvé', { uid: userCredential.uid });
 
         // 🔐 ÉTAPE 3 : Génération des tokens JWT (flux hybride préservé)
-        console.log('🔐 Génération des tokens JWT...');
+        secureLogger.info('Génération des tokens JWT...');
         const accessToken = jwt.sign(
             { 
                 uid: userCredential.uid, 
@@ -91,17 +90,13 @@ router.post('/login', loginLimiter, async (req, res) => {
             { expiresIn: '7d' } // Refresh token long
         );
 
-        console.log('🔐 === LOGIN RÉUSSI ===');
-        console.log('🔐 UID:', userCredential.uid);
-        console.log('🔐 Email:', userCredential.email);
-        console.log('🔐 Access Token généré:', accessToken.substring(0, 20) + '...');
-        console.log('🔐 Refresh Token généré:', refreshToken.substring(0, 20) + '...');
+        secureLogger.info('Login réussi', { uid: userCredential.uid, email: userCredential.email });
         
         // 🔐 ÉTAPE 4 : Stockage sécurisé (flux hybride préservé)
         // Nettoyer les anciens cookies
         res.clearCookie('access_token');
         res.clearCookie('refresh_token');
-        console.log('🔐 Anciens cookies nettoyés');
+        secureLogger.info('Anciens cookies nettoyés');
         
         // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
         res.cookie('__Host-refresh_token', refreshToken, {
@@ -111,7 +106,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
         });
-        console.log('🔐 Cookie refresh_token défini (HttpOnly + Secure + SameSite=None)');
+        secureLogger.info('Cookie refresh_token défini (HttpOnly + Secure + SameSite=None)');
 
         // 🔐 ÉTAPE 5 : Réponse (flux hybride préservé)
         res.json({
@@ -122,65 +117,37 @@ router.post('/login', loginLimiter, async (req, res) => {
                 email: userCredential.email
             }
         });
+
     } catch (error) {
-        console.error('❌ Erreur de login:', error);
+        secureLogger.error('Erreur de login', error);
         
         // Gestion des erreurs Firebase
         if (error.code === 'auth/user-not-found') {
             return res.status(401).json({
                 success: false,
-                error: 'Email ou mot de passe incorrect',
-                code: 'auth/invalid-credential'
+                error: 'Utilisateur non trouvé',
+                code: 'auth/user-not-found'
             });
         }
         
-        if (error.code === 'auth/invalid-credential') {
-            return res.status(401).json({
-                success: false,
-                error: 'Email ou mot de passe incorrect',
-                code: 'auth/invalid-credential'
-            });
-        }
-
-        // Erreur par défaut
-        res.status(401).json({
+        res.status(500).json({
             success: false,
-            error: 'Identifiants invalides',
-            code: 'auth/invalid-credential'
+            error: 'Erreur interne du serveur',
+            code: 'INTERNAL_ERROR'
         });
     }
 });
 
-// Endpoint de refresh token
+// Endpoint de rafraîchissement du token
 router.post('/refresh', async (req, res) => {
     try {
-        // Vérification CSRF
-        const origin = req.headers.origin;
-        const referer = req.headers.referer;
-        const requestedWith = req.headers['x-requested-with'];
-        
-        // Vérifier l'origine
-        if (!origin || !allowedOrigins.includes(origin)) {
-            return res.status(403).json({
-                success: false,
-                error: 'Origin non autorisé'
-            });
-        }
-        
-        // Vérifier le header personnalisé
-        if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
-            return res.status(403).json({
-                success: false,
-                error: 'Header X-Requested-With requis'
-            });
-        }
-
         const refreshToken = req.cookies['__Host-refresh_token'];
         
         if (!refreshToken) {
             return res.status(401).json({
                 success: false,
-                error: 'Refresh token manquant'
+                error: 'Refresh token manquant',
+                code: 'REFRESH_TOKEN_MISSING'
             });
         }
 
@@ -190,14 +157,17 @@ router.post('/refresh', async (req, res) => {
         if (decoded.type !== 'refresh') {
             return res.status(401).json({
                 success: false,
-                error: 'Refresh token invalide'
+                error: 'Token invalide',
+                code: 'INVALID_TOKEN_TYPE'
             });
         }
 
         // Vérifier que l'utilisateur existe toujours
         const user = await admin.auth().getUser(decoded.uid);
+        
+        secureLogger.info('Access token rafraîchi', { uid: user.uid });
 
-        // Générer un nouveau access token
+        // Générer un nouvel access token
         const newAccessToken = jwt.sign(
             { 
                 uid: user.uid, 
@@ -209,54 +179,32 @@ router.post('/refresh', async (req, res) => {
             { expiresIn: '15m' }
         );
 
-        console.log('🔄 Access token rafraîchi pour:', user.email);
-
         res.json({
             success: true,
             access_token: newAccessToken,
-            exp: Math.floor(Date.now() / 1000) + (15 * 60) // Expiration en timestamp
+            exp: Date.now() + (15 * 60 * 1000)
         });
+
     } catch (error) {
-        console.error('❌ Erreur refresh token:', error);
+        secureLogger.error('Erreur refresh token', error);
         res.status(401).json({
             success: false,
-            error: 'Refresh token invalide'
+            error: 'Token invalide ou expiré',
+            code: 'INVALID_REFRESH_TOKEN'
         });
     }
 });
 
-// Endpoint de logout
-router.post('/logout', (req, res) => {
-    // Vérification CSRF
-    const origin = req.headers.origin;
-    const requestedWith = req.headers['x-requested-with'];
-    
-    // Vérifier l'origine
-    if (!origin || !allowedOrigins.includes(origin)) {
-        return res.status(403).json({
-            success: false,
-            error: 'Origin non autorisé'
-        });
+// Endpoint de déconnexion
+router.post('/logout', async (req, res) => {
+    try {
+        res.clearCookie('__Host-refresh_token');
+        secureLogger.info('Utilisateur déconnecté');
+        res.json({ success: true });
+    } catch (error) {
+        secureLogger.error('Erreur logout', error);
+        res.status(500).json({ success: false, error: 'Erreur lors de la déconnexion' });
     }
-    
-    // Vérifier le header personnalisé
-    if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
-        return res.status(403).json({
-            success: false,
-            error: 'Header X-Requested-With requis'
-        });
-    }
-
-    // Invalider le refresh token en supprimant le cookie
-    res.clearCookie('__Host-refresh_token', {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        path: '/',
-        maxAge: 0
-    });
-    
-    res.json({ success: true });
 });
 
 // Endpoint d'inscription
@@ -264,34 +212,34 @@ router.post('/signup', signupLimiter, async (req, res) => {
     try {
         const { email, password, firstName, lastName, referralSource, otherReferralSource, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
 
-        // Création de l'utilisateur dans Firebase Auth
+        secureLogger.operation('signup', { email });
+
+        // Créer l'utilisateur dans Firebase Auth
         const userRecord = await admin.auth().createUser({
             email,
             password,
             displayName: `${firstName} ${lastName}`
         });
 
-        // Préparation des données utilisateur sans professionalActivity
-        const userData = {
-            uid: userRecord.uid,
+        // Enregistrer les informations dans Firestore
+        const db = admin.firestore();
+        await db.collection('users').doc(userRecord.uid).set({
             email,
             firstName,
             lastName,
             referralSource,
-            otherReferralSource: referralSource === 'other' ? otherReferralSource : null,
-            disclaimerAccepted: !!disclaimerAccepted,
-            disclaimerAcceptedAt: disclaimerAcceptedAt || Date.now(),
+            otherReferralSource,
+            disclaimerAccepted,
+            disclaimerAcceptedAt,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             role: 'user',
             isActive: true
-        };
+        });
 
-        // Enregistrement des infos dans Firestore
-        const db = admin.firestore();
-        await db.collection('users').doc(userRecord.uid).set(userData);
+        secureLogger.info('Utilisateur créé avec succès', { uid: userRecord.uid });
 
-        // Génération des tokens
+        // Générer les tokens
         const accessToken = jwt.sign(
             { 
                 uid: userRecord.uid, 
@@ -300,7 +248,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 loginTime: Date.now()
             },
             JWT_SECRET,
-            { expiresIn: '15m' } // Access token court
+            { expiresIn: '15m' }
         );
 
         const refreshToken = jwt.sign(
@@ -311,20 +259,18 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 loginTime: Date.now()
             },
             JWT_SECRET,
-            { expiresIn: '7d' } // Refresh token long
+            { expiresIn: '7d' }
         );
 
-        // Nettoyer l'ancien cookie
-        res.clearCookie('__Host-refresh_token');
-        
-        // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
+        // Définir le cookie refresh_token
         res.cookie('__Host-refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
             path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
+
         res.json({
             success: true,
             access_token: accessToken,
@@ -335,31 +281,30 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 lastName
             }
         });
+
     } catch (error) {
-        console.error('Erreur signup:', error);
+        secureLogger.error('Erreur signup', error);
         res.status(400).json({ success: false, error: error.message });
     }
 });
 
-// Endpoint de modification du profil (nom, prénom)
+// Endpoint de modification du profil
 router.put('/profile', authMiddleware, async (req, res) => {
     try {
         const { firstName, lastName } = req.body;
         const uid = req.user.uid;
-        // Mise à jour dans Firebase Auth
-        await admin.auth().updateUser(uid, {
-            displayName: `${firstName} ${lastName}`
-        });
-        // Mise à jour dans Firestore
+
         const db = admin.firestore();
         await db.collection('users').doc(uid).update({
             firstName,
             lastName,
             updatedAt: Date.now()
         });
+
+        secureLogger.info('Profil mis à jour avec succès', { uid });
         res.json({ success: true });
     } catch (error) {
-        console.error('Erreur update profile:', error);
+        secureLogger.error('Erreur update profile', error);
         res.status(400).json({ success: false, error: error.message });
     }
 });
@@ -367,25 +312,13 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // Endpoint de modification du mot de passe
 router.put('/password', authMiddleware, async (req, res) => {
     try {
-        console.log('🔐 === DÉBUT CHANGEMENT MOT DE PASSE ===');
-        console.log('🔐 Headers:', req.headers);
-        console.log('🔐 Content-Type:', req.get('Content-Type'));
-        console.log('🔐 Body complet:', JSON.stringify(req.body, null, 2));
-        console.log('🔐 currentPassword:', req.body?.currentPassword);
-        console.log('🔐 newPassword:', req.body?.newPassword);
-        
         const { currentPassword, newPassword } = req.body;
         const uid = req.user.uid;
         const email = req.user.email;
 
-        console.log('🔐 UID:', uid);
-        console.log('🔐 Email:', email);
-        console.log('🔐 Vérification du mot de passe actuel...');
-
         // 🔐 ÉTAPE 1 : Vérification du mot de passe actuel
         if (!currentPassword) {
-            console.error('❌ Mot de passe actuel manquant dans req.body');
-            console.error('❌ req.body:', req.body);
+            secureLogger.error('Mot de passe actuel manquant dans req.body');
             return res.status(400).json({ 
                 success: false, 
                 error: 'Le mot de passe actuel est requis',
@@ -410,7 +343,7 @@ router.put('/password', authMiddleware, async (req, res) => {
         const verifyData = await verifyResponse.json();
         
         if (!verifyResponse.ok) {
-            console.error('❌ Mot de passe actuel incorrect:', verifyData.error?.message);
+            secureLogger.error('Mot de passe actuel incorrect');
             return res.status(401).json({
                 success: false,
                 error: 'Le mot de passe actuel est incorrect',
@@ -418,7 +351,7 @@ router.put('/password', authMiddleware, async (req, res) => {
             });
         }
 
-        console.log('✅ Mot de passe actuel vérifié avec succès');
+        secureLogger.info('Mot de passe actuel vérifié avec succès');
 
         // 🔐 ÉTAPE 2 : Validation du nouveau mot de passe
         if (!newPassword || newPassword.length < 6) {
@@ -430,10 +363,10 @@ router.put('/password', authMiddleware, async (req, res) => {
         }
 
         // 🔐 ÉTAPE 3 : Mise à jour du mot de passe
-        console.log('🔐 Mise à jour du mot de passe...');
+        secureLogger.info('Mise à jour du mot de passe...');
         await admin.auth().updateUser(uid, { password: newPassword });
         
-        console.log('✅ Mot de passe mis à jour avec succès');
+        secureLogger.info('Mot de passe mis à jour avec succès');
         
         res.json({ 
             success: true, 
@@ -442,7 +375,7 @@ router.put('/password', authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Erreur lors du changement de mot de passe:', error);
+        secureLogger.error('Erreur lors du changement de mot de passe', error);
         
         // Gestion des erreurs spécifiques Firebase
         if (error.code === 'auth/weak-password') {
@@ -471,7 +404,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
         }
         res.json(userDoc.data());
     } catch (error) {
-        console.error('Erreur récupération profil:', error);
+        secureLogger.error('Erreur récupération profil', error);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
@@ -484,11 +417,10 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Email requis.' });
         }
 
-        console.log('🔄 === DÉBUT RÉINITIALISATION MOT DE PASSE ===');
-        console.log('🔄 Email:', email);
+        secureLogger.operation('password_reset', { email });
 
         // 🔄 Utiliser Firebase Auth REST API (envoi automatique)
-        console.log('🔄 Utilisation de Firebase Auth REST API pour l\'envoi automatique...');
+        secureLogger.info('Utilisation de Firebase Auth REST API pour l\'envoi automatique...');
         try {
             const resetResponse = await fetch(
                 `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.FIREBASE_WEB_API_KEY}`,
@@ -505,12 +437,11 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
             const resetData = await resetResponse.json();
             
             if (!resetResponse.ok) {
-                console.error('❌ Erreur Firebase Auth REST API:', resetData);
+                secureLogger.error('Erreur Firebase Auth REST API');
                 throw new Error(resetData.error?.message || 'Erreur lors de l\'envoi de l\'email');
             }
 
-            console.log('✅ Email de réinitialisation envoyé via Firebase Auth REST API');
-            console.log('✅ Réponse Firebase:', resetData);
+            secureLogger.info('Email de réinitialisation envoyé via Firebase Auth REST API');
             
             return res.json({ 
                 success: true, 
@@ -520,25 +451,25 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
             });
 
         } catch (restApiError) {
-            console.error('❌ Erreur avec Firebase Auth REST API:', restApiError);
-            console.log('🔄 Tentative avec Firebase Admin SDK...');
+            secureLogger.error('Erreur avec Firebase Auth REST API', restApiError);
+            secureLogger.info('Tentative avec Firebase Admin SDK...');
             
             // 🔄 Fallback avec Firebase Admin SDK
             try {
                 // Vérifier que l'utilisateur existe
                 const userRecord = await admin.auth().getUserByEmail(email);
-                console.log('✅ Utilisateur trouvé:', userRecord.uid);
+                secureLogger.info('Utilisateur trouvé', { uid: userRecord.uid });
 
                 // Générer le lien de réinitialisation
                 const resetLink = await admin.auth().generatePasswordResetLink(email, {
                     url: process.env.FRONTEND_URL + '/reset-password',
                     handleCodeInApp: false
                 });
-                console.log('✅ Lien généré:', resetLink.substring(0, 100) + '...');
+                secureLogger.info('Lien de réinitialisation généré');
 
                 // TODO: Intégrer votre service d'envoi d'email ici
-                console.log('⚠️ ATTENTION: Lien généré mais email non envoyé automatiquement');
-                console.log('⚠️ Vous devez implémenter l\'envoi d\'email manuellement');
+                secureLogger.info('ATTENTION: Lien généré mais email non envoyé automatiquement');
+                secureLogger.info('Vous devez implémenter l\'envoi d\'email manuellement');
                 
                 return res.json({ 
                     success: true, 
@@ -549,24 +480,25 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
                 });
 
             } catch (adminError) {
-                console.error('❌ Erreur avec Firebase Admin SDK:', adminError);
+                secureLogger.error('Erreur avec Firebase Admin SDK', adminError);
                 throw adminError;
             }
         }
 
     } catch (error) {
-        console.error('❌ Erreur reset password:', error);
+        secureLogger.error('Erreur reset password', error);
         if (error.code === 'auth/user-not-found') {
             return res.status(400).json({ 
                 success: false, 
-                error: "Aucun utilisateur trouvé avec cet email.", 
-                code: error.code 
+                error: 'Aucun compte associé à cette adresse email.',
+                code: 'USER_NOT_FOUND'
             });
         }
+        
         res.status(500).json({ 
             success: false, 
-            error: 'Erreur serveur lors de la réinitialisation du mot de passe.', 
-            code: error.code 
+            error: 'Erreur lors de la réinitialisation du mot de passe',
+            code: 'INTERNAL_ERROR'
         });
     }
 });

@@ -1,26 +1,5 @@
 const rateLimit = require('express-rate-limit');
-const crypto = require('crypto');
-
-// Fonction utilitaire pour hasher les emails (anonymisation)
-const hashEmail = (email) => {
-    if (!email) return 'anonymous';
-    return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex').substring(0, 8);
-};
-
-// Fonction de validation des données avant comptage
-const validateRequestData = (req) => {
-    const { email } = req.body || {};
-    
-    // Validation basique de l'email
-    if (email && typeof email === 'string') {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return false; // Email invalide
-        }
-    }
-    
-    return true; // Données valides
-};
+const { secureLogger } = require('../utils/secureLogger');
 
 // Rate limiter pour la réinitialisation de mot de passe
 const passwordResetLimiter = rateLimit({
@@ -47,7 +26,7 @@ const passwordResetLimiter = rateLimit({
     keyGenerator: (req) => {
         // Utilise l'IP + email hashé pour un rate limiting plus précis
         const email = req.body?.email;
-        const emailHash = hashEmail(email);
+        const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
         return `${req.ip}-${emailHash}`;
     },
     // Skip certaines conditions (uniquement en développement)
@@ -62,21 +41,15 @@ const passwordResetLimiter = rateLimit({
     skipSuccessfulRequests: false,
     // Callback après chaque requête
     onLimitReached: (req, res, options) => {
-        const emailHash = hashEmail(req.body?.email);
-        console.log(`🚫 Rate limit atteint pour ${req.ip} - Email hashé: ${emailHash}`);
+        const email = req.body?.email;
+        const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
         
-        // Log de sécurité anonymisé
-        const securityLog = {
-            timestamp: new Date().toISOString(),
+        secureLogger.security('Rate limit atteint', {
             ip: req.ip,
-            emailHash: emailHash,
-            userAgent: req.get('User-Agent'),
+            emailHash,
             path: req.path,
-            method: req.method,
-            environment: process.env.NODE_ENV || 'development'
-        };
-        
-        console.log('🚫 Tentative de réinitialisation bloquée par rate limiting:', securityLog);
+            method: req.method
+        });
     }
 });
 
@@ -92,16 +65,30 @@ const loginLimiter = rateLimit({
     },
     keyGenerator: (req) => {
         const email = req.body?.email;
-        const emailHash = hashEmail(email);
+        const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
         return `login-${req.ip}-${emailHash}`;
     },
     skip: (req) => {
         // Validation des données avant comptage
-        return !validateRequestData(req);
+        const { email } = req.body || {};
+        if (email && typeof email === 'string') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return false; // Email invalide
+            }
+        }
+        return true;
     },
     onLimitReached: (req, res, options) => {
-        const emailHash = hashEmail(req.body?.email);
-        console.log(`🚫 Rate limit de connexion atteint pour ${req.ip} - Email hashé: ${emailHash}`);
+        const email = req.body?.email;
+        const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
+        
+        secureLogger.security('Rate limit de connexion atteint', {
+            ip: req.ip,
+            emailHash,
+            path: req.path,
+            method: req.method
+        });
     }
 });
 
@@ -116,7 +103,11 @@ const globalLimiter = rateLimit({
     },
     keyGenerator: (req) => req.ip,
     onLimitReached: (req, res, options) => {
-        console.log(`🚫 Rate limit global atteint pour ${req.ip}`);
+        secureLogger.security('Rate limit global atteint', {
+            ip: req.ip,
+            path: req.path,
+            method: req.method
+        });
     }
 });
 
@@ -132,10 +123,21 @@ const signupLimiter = rateLimit({
     keyGenerator: (req) => req.ip,
     skip: (req) => {
         // Validation des données avant comptage
-        return !validateRequestData(req);
+        const { email } = req.body || {};
+        if (email && typeof email === 'string') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return false; // Email invalide
+            }
+        }
+        return true;
     },
     onLimitReached: (req, res, options) => {
-        console.log(`🚫 Rate limit d'inscription atteint pour ${req.ip}`);
+        secureLogger.security('Rate limit d\'inscription atteint', {
+            ip: req.ip,
+            path: req.path,
+            method: req.method
+        });
     }
 });
 
@@ -143,7 +145,5 @@ module.exports = {
     passwordResetLimiter,
     loginLimiter,
     globalLimiter,
-    signupLimiter,
-    hashEmail, // Export pour utilisation dans d'autres middlewares
-    validateRequestData
+    signupLimiter
 }; 

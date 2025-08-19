@@ -658,93 +658,149 @@ BAN_BYPASS_IN_DEV=true
 NODE_ENV=production
 ```
 
-### Anonymisation des données sensibles
+## 🔒 Système de logging sécurisé avec Allowlist
 
-#### Hashing des emails
+### Principe de sécurité par défaut
 
-```javascript
-// Fonction de hachage automatique
-const hashEmail = (email) => {
-    if (!email) return 'anonymous';
-    return crypto.createHash('sha256')
-        .update(email.toLowerCase())
-        .digest('hex')
-        .substring(0, 8);
-};
+**AVANT (approche fragile) :** Masquage des clés sensibles avec risque d'oubli
+**MAINTENANT (approche sécurisée) :** Allowlist stricte - seuls les champs explicitement autorisés sont loggés
 
-// Exemple : user@example.com → a1b2c3d4
-```
-
-#### Logs sécurisés
+### Champs autorisés à être loggés
 
 ```javascript
-// Avant (données exposées)
-🚫 Rate limit atteint pour 192.168.1.1 - Email: user@example.com
-
-// Après (anonymisé)
-🚫 Rate limit atteint pour 192.168.1.1 - Email hashé: a1b2c3d4
+const ALLOWED_LOG_FIELDS = [
+    'path',           // Chemin de la requête (/api/auth/login)
+    'method',         // Méthode HTTP (GET, POST, PUT, DELETE)
+    'status',         // Code de statut HTTP (200, 400, 500)
+    'durationMs',     // Durée de traitement en millisecondes
+    'requestId',      // ID unique de la requête pour le tracing
+    'ip',             // IP client (anonymisée automatiquement)
+    'userAgent',      // Navigateur et version uniquement
+    'timestamp',      // Horodatage ISO
+    'environment',    // Environnement (development/production)
+    'operation',      // Opération métier (login, password_change, etc.)
+    'success',        // Succès/échec de l'opération
+    'errorCode',      // Code d'erreur (sans détails sensibles)
+    'rateLimit',      // Informations de rate limiting
+    'endpoint'        // Endpoint appelé
+];
 ```
 
-### Validation des données avant comptage
+### Fonctionnalités du logger sécurisé
 
-Les requêtes malformées ne sont pas comptées dans le rate limiting :
-
+#### 1. **Anonymisation automatique des IPs**
 ```javascript
-// Validation automatique des emails
-const validateRequestData = (req) => {
-    const { email } = req.body || {};
-    
-    if (email && typeof email === 'string') {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-    
-    return true;
-};
-
-// Application automatique
-skip: (req) => !validateRequestData(req)
+// IPv4: 192.168.1.100 → 192.168.xxx.xxx
+// IPv6: 2001:db8::1 → 2001:db8:xxx:xxx
+// Localhost: 127.0.0.1 → localhost
 ```
 
-### Headers de sécurité renforcés
-
-```http
-# Headers automatiquement ajoutés
-X-Powered-By: WealthSense API
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Referrer-Policy: strict-origin-when-cross-origin
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
-
-# Headers de rate limiting
-RateLimit-Limit: 3
-RateLimit-Remaining: 1
-RateLimit-Reset: 1640995200
-Retry-After: 3600
-```
-
-### Monitoring et alertes de sécurité
-
+#### 2. **Nettoyage du User-Agent**
 ```javascript
-// Logs de sécurité automatiques
-🚫 Tentative de bypass détectée en production: {
-  ip: "192.168.1.1",
-  userAgent: "Mozilla/5.0...",
-  timestamp: "2025-08-19T12:00:00.000Z"
-}
+// Avant: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36..."
+// Après: "Chrome/120.0.0.0"
+```
 
-// Logs de rate limiting anonymisés
-🚫 Tentative de réinitialisation bloquée par rate limiting: {
-  timestamp: "2025-08-19T12:00:00.000Z",
-  ip: "192.168.1.1",
-  emailHash: "a1b2c3d4",
-  userAgent: "Mozilla/5.0...",
-  path: "/api/auth/reset-password",
-  method: "POST",
-  environment: "production"
+#### 3. **Génération d'ID de requête unique**
+```javascript
+// Chaque requête reçoit un ID unique pour le tracing
+requestId: "a1b2c3d4"
+```
+
+#### 4. **Logs structurés et sécurisés**
+```javascript
+// Exemple de log de requête
+{
+  "requestId": "a1b2c3d4",
+  "timestamp": "2025-08-19T15:30:00.000Z",
+  "environment": "production",
+  "operation": "login",
+  "endpoint": "/api/auth/login",
+  "method": "POST",
+  "ip": "192.168.xxx.xxx",
+  "userAgent": "Chrome/120.0.0.0",
+  "success": true,
+  "durationMs": 245
 }
 ```
+
+### Utilisation du logger sécurisé
+
+#### **Log de requête entrante**
+```javascript
+const logData = secureLogger.request(req, 'login');
+// Retourne un objet avec requestId et startTime
+```
+
+#### **Log de réponse**
+```javascript
+secureLogger.response(logData, res, error);
+// Calcule automatiquement la durée et le statut
+```
+
+#### **Log d'opération métier**
+```javascript
+secureLogger.operation('password_change', { userId: 'abc123' });
+// Seuls les champs autorisés sont loggés
+```
+
+#### **Log de sécurité**
+```javascript
+secureLogger.security('rate_limit_exceeded', { ip: req.ip });
+// Logs spécifiques aux événements de sécurité
+```
+
+#### **Log d'erreur sécurisé**
+```javascript
+secureLogger.error('Erreur de validation', error, { endpoint: '/api/auth/login' });
+// Détails de l'erreur uniquement en développement
+```
+
+### Avantages de l'approche Allowlist
+
+✅ **Sécurité par défaut** - Impossible d'exposer des données sensibles par oubli  
+✅ **Maintenance simple** - Ajouter un champ = l'ajouter à la liste blanche  
+✅ **Audit facile** - On sait exactement ce qui est loggé  
+✅ **Conformité RGPD** - Pas de risque d'exposer des données personnelles  
+✅ **Performance** - Filtrage automatique des données non autorisées  
+✅ **Tracing** - ID de requête unique pour le debugging  
+
+### Migration depuis l'ancien système
+
+#### **AVANT (fragile) :**
+```javascript
+// ❌ Risque d'oublier de masquer des données sensibles
+console.log('User data:', { email: user.email, password: '***' });
+console.log('Request body:', req.body); // DANGEREUX !
+```
+
+#### **MAINTENANT (sécurisé) :**
+```javascript
+// ✅ Seuls les champs autorisés sont loggés
+secureLogger.operation('user_login', { userId: user.uid });
+secureLogger.info('Login réussi', { email: user.email }); // Email automatiquement filtré
+```
+
+### Configuration par environnement
+
+```bash
+# Développement
+NODE_ENV=development
+# Logs plus détaillés mais toujours sécurisés
+
+# Production
+NODE_ENV=production
+# Logs minimaux, aucune donnée sensible
+```
+
+### Monitoring et alertes
+
+Le système génère automatiquement des logs structurés pour :
+- **Tentatives de bypass** détectées
+- **Rate limiting** déclenché
+- **Erreurs de sécurité** (tokens invalides, etc.)
+- **Performance** (durée des requêtes)
+- **Tracing** (suivi des requêtes via requestId)
 
 ### Configuration par environnement
 
@@ -905,4 +961,4 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 
 ---
 
-*Dernière mise à jour : 19/08/2025 - Implémentation de la vérification du mot de passe actuel lors du changement de mot de passe* 
+*Dernière mise à jour : 19/08/2025 - Implémentation du système de logging sécurisé avec allowlist stricte* 

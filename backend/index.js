@@ -4,7 +4,7 @@ const axios = require('axios');
 const cookieParser = require('cookie-parser');
 const { admin } = require('./firebase-config');
 const { globalLimiter } = require('./middleware/rateLimit');
-const { hashEmail } = require('./middleware/rateLimit');
+const { secureLogger } = require('./utils/secureLogger');
 const authRoutes = require('./routes/auth');
 const authMiddleware = require('./middleware/auth');
 const conversationsRoutes = require('./routes/conversations');
@@ -25,10 +25,9 @@ app.set('trust proxy', 1);
 app.use((req, res, next) => {
     // BANNIR le header bypass en production
     if (isProduction && req.headers['x-test-mode']) {
-        console.error('🚫 Tentative de bypass détectée en production:', {
+        secureLogger.security('Tentative de bypass détectée en production', {
             ip: req.ip,
-            userAgent: req.get('User-Agent'),
-            timestamp: new Date().toISOString()
+            userAgent: req.get('User-Agent')
         });
         return res.status(403).json({
             success: false,
@@ -39,53 +38,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// Fonction utilitaire pour masquer les informations sensibles
-const maskSensitiveData = (obj) => {
-    if (typeof obj !== 'object' || obj === null) return obj;
-    const masked = { ...obj };
-    
-    // Liste des clés sensibles à masquer
-    const sensitiveKeys = ['userEmail', 'email', 'password', 'token', 'apiKey'];
-    
-    Object.keys(masked).forEach(key => {
-        if (sensitiveKeys.includes(key.toLowerCase())) {
-            if (key.toLowerCase() === 'email' && typeof masked[key] === 'string') {
-                // Anonymiser les emails avec hash
-                masked[key] = hashEmail(masked[key]);
-            } else {
-                masked[key] = '***masked***';
-            }
-        } else if (typeof masked[key] === 'object') {
-            masked[key] = maskSensitiveData(masked[key]);
-        }
-    });
-    return masked;
-};
-
-// Logger sécurisé
-const secureLogger = {
-    info: (message, data = {}) => {
-        if (isProduction) {
-            // En production, on log uniquement les informations non sensibles
-            console.log(`ℹ️ ${message}`);
-        } else {
-            // En développement, on log plus de détails mais toujours de manière sécurisée
-            console.log(`ℹ️ ${message}`, maskSensitiveData(data));
-        }
-    },
-    error: (message, error = {}) => {
-        const errorData = {
-            message: error.message,
-            code: error.code,
-            status: error.response?.status
-        };
-        console.error(`❌ ${message}`, maskSensitiveData(errorData));
-    }
-};
-
 // Middleware de logging minimal pour toutes les requêtes
 app.use((req, res, next) => {
-    secureLogger.info(`${req.method} ${req.path}`);
+    const logData = secureLogger.request(req, 'http_request');
+    req.logData = logData; // Stocker pour utilisation ultérieure
     next();
 });
 
@@ -173,26 +129,15 @@ const REGISTRATION_WEBHOOK_URL = process.env.REGISTRATION_WEBHOOK_URL;
 const handleWebhook = async (req, res) => {
     try {
         const payload = req.method === 'GET' ? req.query : req.body;
-        secureLogger.info('📤 Début du traitement webhook', {
-            method: req.method,
-            payload: payload
-        });
+        secureLogger.operation('webhook', { method: req.method });
         
         // Construire l'URL avec les paramètres de requête
         const params = new URLSearchParams(payload);
         const urlWithParams = `${N8N_WEBHOOK_URL}?${params.toString()}`;
         
-        secureLogger.info('🔗 URL webhook construite', {
-            url: urlWithParams
-        });
+        secureLogger.info('URL webhook construite');
         
-        // LOG DEBUG : Affichage des paramètres envoyés à N8N
-        console.log('DEBUG - Appel N8N :', {
-            url: urlWithParams,
-            params: payload
-        });
-        
-        secureLogger.info('🚀 Envoi de la requête à N8N');
+        secureLogger.info('Envoi de la requête à N8N');
         const response = await axios({
             method: 'GET',
             url: urlWithParams,
@@ -201,28 +146,11 @@ const handleWebhook = async (req, res) => {
             }
         });
         
-        // LOG DEBUG : Affichage de la réponse brute de N8N
-        console.log('DEBUG - Réponse N8N :', {
-            status: response.status,
-            data: response.data
-        });
-        
-        secureLogger.info('✅ Réponse reçue de N8N', {
-            status: response.status,
-            data: response.data
-        });
+        secureLogger.info('Réponse reçue de N8N', { status: response.status });
         
         res.json(response.data);
     } catch (error) {
-        secureLogger.error('❌ Erreur webhook', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            url: N8N_WEBHOOK_URL
-        });
-        
-        // LOG DEBUG : Affichage de l'erreur complète
-        console.error('DEBUG - Erreur complète lors de l\'appel à N8N :', error);
+        secureLogger.error('Erreur webhook', error, { url: N8N_WEBHOOK_URL });
         
         res.status(500).json({ 
             error: 'Erreur lors de l\'envoi des données',
@@ -236,8 +164,7 @@ const handleFeedback = async (req, res) => {
     try {
         const payload = req.method === 'GET' ? req.query : req.body;
         
-        // Log minimal en production
-        secureLogger.info('Traitement d\'une requête feedback', { method: req.method });
+        secureLogger.operation('feedback', { method: req.method });
 
         // Vérification des données requises
         if (!payload.userEmail || !payload.feedback) {
@@ -273,6 +200,8 @@ const handleRegistration = async (req, res) => {
         const params = new URLSearchParams(payload);
         const urlWithParams = `${REGISTRATION_WEBHOOK_URL}?${params.toString()}`;
         
+        secureLogger.operation('registration', { method: req.method });
+        
         const response = await axios({
             method: 'GET',
             url: urlWithParams,
@@ -282,7 +211,7 @@ const handleRegistration = async (req, res) => {
         });
         res.json(response.data);
     } catch (error) {
-        console.error('Erreur registration:', error.response?.data || error.message);
+        secureLogger.error('Erreur registration', error);
         res.status(500).json({ 
             error: 'Erreur lors de l\'enregistrement',
             details: error.response?.data || error.message
