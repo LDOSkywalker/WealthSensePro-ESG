@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { X, User, Mail, Lock, Eye, EyeOff, Check, X as XIcon } from 'lucide-react';
 import axios from 'axios';
 import { authService } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,38 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, darkMode =
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  // Fonction pour vérifier les critères du mot de passe
+  const getPasswordCriteria = () => {
+    const criteria = [
+      {
+        label: 'Au moins 8 caractères',
+        met: newPassword.length >= 8,
+        icon: newPassword.length >= 8 ? Check : XIcon
+      },
+      {
+        label: 'Au moins une majuscule',
+        met: /[A-Z]/.test(newPassword),
+        icon: /[A-Z]/.test(newPassword) ? Check : XIcon
+      },
+      {
+        label: 'Au moins une minuscule',
+        met: /[a-z]/.test(newPassword),
+        icon: /[a-z]/.test(newPassword) ? Check : XIcon
+      },
+      {
+        label: 'Au moins un chiffre',
+        met: /\d/.test(newPassword),
+        icon: /\d/.test(newPassword) ? Check : XIcon
+      },
+      {
+        label: 'Au moins un caractère spécial',
+        met: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword),
+        icon: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword) ? Check : XIcon
+      }
+    ];
+    return criteria;
+  };
   
   const fetchUserProfile = async () => {
     try {
@@ -309,6 +341,38 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, darkMode =
                   )}
                 </button>
               </div>
+              
+              {/* Affichage dynamique des critères du mot de passe */}
+              {newPassword && (
+                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Critères du mot de passe :
+                  </p>
+                  <div className="space-y-1">
+                    {getPasswordCriteria().map((criterion, index) => {
+                      const IconComponent = criterion.icon;
+                      return (
+                        <div key={index} className="flex items-center space-x-2">
+                          <IconComponent 
+                            className={`h-3 w-3 ${
+                              criterion.met 
+                                ? 'text-green-500' 
+                                : darkMode ? 'text-gray-500' : 'text-gray-400'
+                            }`} 
+                          />
+                          <span className={`text-xs ${
+                            criterion.met 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : darkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                            {criterion.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="mb-6">

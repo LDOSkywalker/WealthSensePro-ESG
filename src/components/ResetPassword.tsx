@@ -38,7 +38,7 @@ const ResetPassword: React.FC = () => {
           </div>
           <div className="text-center">
             <p className="text-gray-600 mb-6">
-              Vérifiez votre boîte email et suivez les instructions pour réinitialiser votre mot de passe.
+              Vérifiez votre boîte email et les spams puis suivez les instructions pour réinitialiser votre mot de passe.
             </p>
             <button
               onClick={handleGoToLogin}
