@@ -367,13 +367,89 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // Endpoint de modification du mot de passe
 router.put('/password', authMiddleware, async (req, res) => {
     try {
-        const { newPassword } = req.body;
+        const { currentPassword, newPassword } = req.body;
         const uid = req.user.uid;
+        const email = req.user.email;
+
+        console.log('🔐 === DÉBUT CHANGEMENT MOT DE PASSE ===');
+        console.log('🔐 UID:', uid);
+        console.log('🔐 Email:', email);
+        console.log('🔐 Vérification du mot de passe actuel...');
+
+        // 🔐 ÉTAPE 1 : Vérification du mot de passe actuel
+        if (!currentPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Le mot de passe actuel est requis',
+                code: 'CURRENT_PASSWORD_REQUIRED'
+            });
+        }
+
+        // Vérification avec Firebase Auth REST API
+        const verifyResponse = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_WEB_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email, 
+                    password: currentPassword, 
+                    returnSecureToken: false 
+                })
+            }
+        );
+
+        const verifyData = await verifyResponse.json();
+        
+        if (!verifyResponse.ok) {
+            console.error('❌ Mot de passe actuel incorrect:', verifyData.error?.message);
+            return res.status(401).json({
+                success: false,
+                error: 'Le mot de passe actuel est incorrect',
+                code: 'INVALID_CURRENT_PASSWORD'
+            });
+        }
+
+        console.log('✅ Mot de passe actuel vérifié avec succès');
+
+        // 🔐 ÉTAPE 2 : Validation du nouveau mot de passe
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'Le nouveau mot de passe doit contenir au moins 6 caractères',
+                code: 'INVALID_NEW_PASSWORD'
+            });
+        }
+
+        // 🔐 ÉTAPE 3 : Mise à jour du mot de passe
+        console.log('🔐 Mise à jour du mot de passe...');
         await admin.auth().updateUser(uid, { password: newPassword });
-        res.json({ success: true });
+        
+        console.log('✅ Mot de passe mis à jour avec succès');
+        
+        res.json({ 
+            success: true, 
+            message: 'Mot de passe modifié avec succès',
+            timestamp: new Date().toISOString()
+        });
+
     } catch (error) {
-        console.error('Erreur update password:', error);
-        res.status(400).json({ success: false, error: error.message });
+        console.error('❌ Erreur lors du changement de mot de passe:', error);
+        
+        // Gestion des erreurs spécifiques Firebase
+        if (error.code === 'auth/weak-password') {
+            return res.status(400).json({
+                success: false,
+                error: 'Le nouveau mot de passe est trop faible',
+                code: 'WEAK_PASSWORD'
+            });
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de la modification du mot de passe',
+            code: 'INTERNAL_ERROR'
+        });
     }
 });
 

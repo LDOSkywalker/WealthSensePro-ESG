@@ -184,6 +184,58 @@ L'API utilise un système d'authentification hybride combinant **Firebase Auth**
 - **Changement de mot de passe** : `PUT /api/auth/password`
 - **Réinitialisation** : `POST /api/auth/reset-password`
 
+#### 🔐 Changement de mot de passe (`PUT /api/auth/password`)
+
+**Authentification requise** ✅
+
+```javascript
+// Requête
+{
+  "currentPassword": "ancien_mot_de_passe",
+  "newPassword": "nouveau_mot_de_passe"
+}
+
+// Réponse de succès
+{
+  "success": true,
+  "message": "Mot de passe modifié avec succès",
+  "timestamp": "2025-08-19T12:00:00.000Z"
+}
+
+// Réponses d'erreur
+{
+  "success": false,
+  "error": "Le mot de passe actuel est requis",
+  "code": "CURRENT_PASSWORD_REQUIRED"
+}
+
+{
+  "success": false,
+  "error": "Le mot de passe actuel est incorrect",
+  "code": "INVALID_CURRENT_PASSWORD"
+}
+
+{
+  "success": false,
+  "error": "Le nouveau mot de passe doit contenir au moins 6 caractères",
+  "code": "INVALID_NEW_PASSWORD"
+}
+```
+
+**Processus de sécurité :**
+
+1. **Vérification du mot de passe actuel** via Firebase Auth REST API
+2. **Validation du nouveau mot de passe** (longueur minimale)
+3. **Mise à jour sécurisée** via Firebase Admin SDK
+4. **Logs détaillés** pour le monitoring de sécurité
+
+**Codes d'erreur :**
+- `CURRENT_PASSWORD_REQUIRED` : Mot de passe actuel manquant
+- `INVALID_CURRENT_PASSWORD` : Mot de passe actuel incorrect
+- `INVALID_NEW_PASSWORD` : Nouveau mot de passe invalide
+- `WEAK_PASSWORD` : Nouveau mot de passe trop faible
+- `INTERNAL_ERROR` : Erreur serveur
+
 ### Réinitialisation de mot de passe (`POST /api/auth/reset-password`)
 
 La réinitialisation de mot de passe utilise un système de fallback intelligent pour garantir la délivrabilité des emails :
@@ -853,4 +905,4 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 
 ---
 
-*Dernière mise à jour : 19/08/2025 - Phase 1 : Améliorations de sécurité critiques (trust proxy, bypass banni, logs anonymisés)* 
+*Dernière mise à jour : 19/08/2025 - Implémentation de la vérification du mot de passe actuel lors du changement de mot de passe* 
