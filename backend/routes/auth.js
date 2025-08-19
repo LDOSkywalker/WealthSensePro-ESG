@@ -398,15 +398,89 @@ router.post('/reset-password', async (req, res) => {
         if (!email) {
             return res.status(400).json({ success: false, error: 'Email requis.' });
         }
-        // Génère un lien de réinitialisation de mot de passe avec Firebase Admin
-        const resetLink = await admin.auth().generatePasswordResetLink(email);
-        res.json({ success: true, message: 'Email de réinitialisation envoyé.', resetLink });
-    } catch (error) {
-        console.error('Erreur reset password:', error);
-        if (error.code === 'auth/user-not-found') {
-            return res.status(400).json({ success: false, error: "Aucun utilisateur trouvé avec cet email.", code: error.code });
+
+        console.log('🔄 === DÉBUT RÉINITIALISATION MOT DE PASSE ===');
+        console.log('🔄 Email:', email);
+
+        // 🔄 OPTION 1 : Utiliser Firebase Auth REST API (envoi automatique)
+        console.log('🔄 Utilisation de Firebase Auth REST API pour l\'envoi automatique...');
+        try {
+            const resetResponse = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.FIREBASE_WEB_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        requestType: 'PASSWORD_RESET',
+                        email: email
+                    })
+                }
+            );
+
+            const resetData = await resetResponse.json();
+            
+            if (!resetResponse.ok) {
+                console.error('❌ Erreur Firebase Auth REST API:', resetData);
+                throw new Error(resetData.error?.message || 'Erreur lors de l\'envoi de l\'email');
+            }
+
+            console.log('✅ Email de réinitialisation envoyé via Firebase Auth REST API');
+            console.log('✅ Réponse Firebase:', resetData);
+            
+            return res.json({ 
+                success: true, 
+                message: 'Email de réinitialisation envoyé avec succès.',
+                firebaseResponse: resetData
+            });
+
+        } catch (restApiError) {
+            console.error('❌ Erreur avec Firebase Auth REST API:', restApiError);
+            console.log('🔄 Tentative avec Firebase Admin SDK...');
+            
+            // 🔄 OPTION 2 : Fallback avec Firebase Admin SDK
+            try {
+                // Vérifier que l'utilisateur existe
+                const userRecord = await admin.auth().getUserByEmail(email);
+                console.log('✅ Utilisateur trouvé:', userRecord.uid);
+
+                // Générer le lien de réinitialisation
+                const resetLink = await admin.auth().generatePasswordResetLink(email, {
+                    url: process.env.FRONTEND_URL + '/reset-password',
+                    handleCodeInApp: false
+                });
+                console.log('✅ Lien généré:', resetLink.substring(0, 100) + '...');
+
+                // TODO: Intégrer votre service d'envoi d'email ici
+                console.log('⚠️ ATTENTION: Lien généré mais email non envoyé automatiquement');
+                console.log('⚠️ Vous devez implémenter l\'envoi d\'email manuellement');
+                
+                return res.json({ 
+                    success: true, 
+                    message: 'Lien de réinitialisation généré. Email à envoyer manuellement.',
+                    resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined,
+                    note: 'Email non envoyé automatiquement - implémentation requise'
+                });
+
+            } catch (adminError) {
+                console.error('❌ Erreur avec Firebase Admin SDK:', adminError);
+                throw adminError;
+            }
         }
-        res.status(400).json({ success: false, error: error.message, code: error.code });
+
+    } catch (error) {
+        console.error('❌ Erreur reset password:', error);
+        if (error.code === 'auth/user-not-found') {
+            return res.status(400).json({ 
+                success: false, 
+                error: "Aucun utilisateur trouvé avec cet email.", 
+                code: error.code 
+            });
+        }
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur lors de la réinitialisation du mot de passe.', 
+            code: error.code 
+        });
     }
 });
 
