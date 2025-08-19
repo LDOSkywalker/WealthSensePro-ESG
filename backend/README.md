@@ -682,8 +682,79 @@ const ALLOWED_LOG_FIELDS = [
     'success',        // Succès/échec de l'opération
     'errorCode',      // Code d'erreur (sans détails sensibles)
     'rateLimit',      // Informations de rate limiting
-    'endpoint'        // Endpoint appelé
+    'endpoint',       // Endpoint appelé
+    'emailHash',      // Email pseudonymisé (a1b2c3d4)
+    'uidHash'         // UID pseudonymisé (e5f6g7h8)
 ];
+```
+
+### 🔐 **Pseudonymisation intelligente des données sensibles**
+
+#### **Principe de la pseudonymisation :**
+
+**AVANT (anonymisation simple) :**
+```javascript
+// ❌ Perte totale de traçabilité
+user@example.com → 192.168.xxx.xxx
+abc123-uid → xxx.xxx.xxx.xxx
+```
+
+**MAINTENANT (pseudonymisation intelligente) :**
+```javascript
+// ✅ Traçabilité préservée, sécurité renforcée
+user@example.com → a1b2c3d4 (hash unique)
+abc123-uid → e5f6g7h8 (hash unique)
+```
+
+#### **Avantages de la pseudonymisation :**
+
+✅ **🔍 Traçabilité** : Possibilité de suivre un utilisateur spécifique dans les logs  
+✅ **🛡️ Sécurité** : Impossible de retrouver l'email/UID original  
+✅ **📊 Analytics** : Analyse des patterns d'utilisation par utilisateur  
+✅ **🔧 Debugging** : Suivi des sessions et requêtes d'un utilisateur  
+✅ **📋 Conformité RGPD** : Meilleure protection des données personnelles  
+
+#### **Comportement par environnement :**
+
+**Développement :**
+```javascript
+// Cache persistant pour la traçabilité
+user@example.com → a1b2c3d4 (toujours le même hash)
+abc123-uid → e5f6g7h8 (toujours le même hash)
+
+// Possibilité de récupérer l'original
+secureLogger.debug.getEmailFromHash('a1b2c3d4') // → user@example.com
+secureLogger.debug.getUIDFromHash('e5f6g7h8')   // → abc123-uid
+```
+
+**Production :**
+```javascript
+// Hash unique à chaque fois (pas de cache)
+user@example.com → a1b2c3d4 (hash différent à chaque fois)
+abc123-uid → e5f6g7h8 (hash différent à chaque fois)
+
+// Impossible de récupérer l'original
+secureLogger.debug.getEmailFromHash('a1b2c3d4') // → ***production***
+```
+
+#### **Fonctions de debugging (développement uniquement) :**
+
+```javascript
+// Récupérer l'email original depuis le hash
+const originalEmail = secureLogger.debug.getEmailFromHash('a1b2c3d4');
+
+// Récupérer l'UID original depuis le hash
+const originalUID = secureLogger.debug.getUIDFromHash('e5f6g7h8');
+
+// Lister tous les mappings
+const mappings = secureLogger.debug.listMappings();
+// {
+//   emails: { 'user@example.com': 'a1b2c3d4' },
+//   uids: { 'abc123-uid': 'e5f6g7h8' }
+// }
+
+// Nettoyer le cache (utile pour les tests)
+secureLogger.debug.clearCache();
 ```
 
 ### Fonctionnalités du logger sécurisé
@@ -709,7 +780,7 @@ requestId: "a1b2c3d4"
 
 #### 4. **Logs structurés et sécurisés**
 ```javascript
-// Exemple de log de requête
+// Exemple de log de requête AVEC pseudonymisation
 {
   "requestId": "a1b2c3d4",
   "timestamp": "2025-08-19T15:30:00.000Z",
@@ -720,7 +791,19 @@ requestId: "a1b2c3d4"
   "ip": "192.168.xxx.xxx",
   "userAgent": "Chrome/120.0.0.0",
   "success": true,
-  "durationMs": 245
+  "durationMs": 245,
+  "emailHash": "e5f6g7h8",    // Email pseudonymisé
+  "uidHash": "i9j0k1l2"      // UID pseudonymisé
+}
+
+// Exemple de log d'opération métier
+{
+  "timestamp": "2025-08-19T15:30:00.000Z",
+  "environment": "development",
+  "operation": "password_change",
+  "emailHash": "a1b2c3d4",   // user@example.com → a1b2c3d4
+  "uidHash": "e5f6g7h8",     // abc123-uid → e5f6g7h8
+  "success": true
 }
 ```
 
@@ -961,4 +1044,4 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 
 ---
 
-*Dernière mise à jour : 19/08/2025 - Implémentation du système de logging sécurisé avec allowlist stricte* 
+*Dernière mise à jour : 19/08/2025 - Implémentation du système de logging sécurisé avec allowlist stricte et pseudonymisation intelligente des emails/UIDs* 

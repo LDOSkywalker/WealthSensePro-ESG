@@ -18,8 +18,84 @@ const ALLOWED_LOG_FIELDS = [
     'success',        // Succès/échec de l'opération
     'errorCode',      // Code d'erreur (sans détails sensibles)
     'rateLimit',      // Informations de rate limiting
-    'endpoint'        // Endpoint appelé
+    'endpoint',       // Endpoint appelé
+    'emailHash',      // Email pseudonymisé
+    'uidHash'         // UID pseudonymisé
 ];
+
+// Cache pour la pseudonymisation (en développement uniquement)
+const pseudonymCache = new Map();
+const reversePseudonymCache = new Map();
+
+// Fonction pour pseudonymiser un email
+const pseudonymizeEmail = (email) => {
+    if (!email) return 'anonymous';
+    
+    // En développement, utiliser un cache pour la traçabilité
+    if (!isProduction) {
+        if (pseudonymCache.has(email)) {
+            return pseudonymCache.get(email);
+        }
+        
+        // Générer un hash unique de 8 caractères
+        const hash = crypto.createHash('sha256')
+            .update(email.toLowerCase())
+            .digest('hex')
+            .substring(0, 8);
+        
+        pseudonymCache.set(email, hash);
+        reversePseudonymCache.set(hash, email);
+        
+        return hash;
+    }
+    
+    // En production, hash unique à chaque fois (pas de cache)
+    return crypto.createHash('sha256')
+        .update(email.toLowerCase() + Date.now())
+        .digest('hex')
+        .substring(0, 8);
+};
+
+// Fonction pour pseudonymiser un UID
+const pseudonymizeUID = (uid) => {
+    if (!uid) return 'anonymous';
+    
+    // En développement, utiliser un cache pour la traçabilité
+    if (!isProduction) {
+        if (pseudonymCache.has(uid)) {
+            return pseudonymCache.get(uid);
+        }
+        
+        // Générer un hash unique de 8 caractères
+        const hash = crypto.createHash('sha256')
+            .update(uid)
+            .digest('hex')
+            .substring(0, 8);
+        
+        pseudonymCache.set(uid, hash);
+        reversePseudonymCache.set(hash, uid);
+        
+        return hash;
+    }
+    
+    // En production, hash unique à chaque fois (pas de cache)
+    return crypto.createHash('sha256')
+        .update(uid + Date.now())
+        .digest('hex')
+        .substring(0, 8);
+};
+
+// Fonction pour récupérer l'email/UID original (développement uniquement)
+const getOriginalValue = (hash) => {
+    if (isProduction) return '***production***';
+    return reversePseudonymCache.get(hash) || 'unknown';
+};
+
+// Fonction pour nettoyer le cache (utile pour les tests)
+const clearPseudonymCache = () => {
+    pseudonymCache.clear();
+    reversePseudonymCache.clear();
+};
 
 // Fonction pour générer un ID de requête unique
 const generateRequestId = () => {
@@ -57,14 +133,25 @@ const sanitizeUserAgent = (userAgent) => {
     return match ? match[0] : 'unknown';
 };
 
-// Fonction pour filtrer les données selon l'allowlist
-const filterAllowedFields = (data) => {
+// Fonction pour filtrer et pseudonymiser les données selon l'allowlist
+const filterAndPseudonymizeData = (data) => {
     if (!data || typeof data !== 'object') return data;
     
     const filtered = {};
     Object.keys(data).forEach(key => {
         if (ALLOWED_LOG_FIELDS.includes(key)) {
-            filtered[key] = data[key];
+            let value = data[key];
+            
+            // Pseudonymiser les emails et UIDs
+            if (key === 'email' && typeof value === 'string') {
+                value = pseudonymizeEmail(value);
+                key = 'emailHash'; // Renommer la clé pour plus de clarté
+            } else if (key === 'uid' && typeof value === 'string') {
+                value = pseudonymizeUID(value);
+                key = 'uidHash'; // Renommer la clé pour plus de clarté
+            }
+            
+            filtered[key] = value;
         }
     });
     
@@ -107,7 +194,7 @@ const finalizeRequestLog = (logData, response, error = null) => {
         finalLog.errorMessage = error.message || 'Unknown error';
     }
     
-    return filterAllowedFields(finalLog);
+    return filterAndPseudonymizeData(finalLog);
 };
 
 // Logger principal sécurisé
@@ -115,7 +202,7 @@ const secureLogger = {
     // Log d'une requête entrante
     request: (req, operation = 'unknown') => {
         const logData = createRequestLog(req, operation);
-        console.log('📥 Requête entrante:', filterAllowedFields(logData));
+        console.log('📥 Requête entrante:', filterAndPseudonymizeData(logData));
         return logData;
     },
     
@@ -135,7 +222,7 @@ const secureLogger = {
             timestamp: new Date().toISOString(),
             environment: process.env.NODE_ENV || 'development',
             operation,
-            ...filterAllowedFields(data)
+            ...filterAndPseudonymizeData(data)
         };
         console.log('🔄 Opération:', logData);
     },
@@ -147,7 +234,7 @@ const secureLogger = {
             environment: process.env.NODE_ENV || 'development',
             operation: 'security',
             event,
-            ...filterAllowedFields(data)
+            ...filterAndPseudonymizeData(data)
         };
         console.log('🛡️ Sécurité:', logData);
     },
@@ -160,7 +247,7 @@ const secureLogger = {
             operation: 'error',
             message,
             errorCode: error?.code || 'UNKNOWN_ERROR',
-            ...filterAllowedFields(context)
+            ...filterAndPseudonymizeData(context)
         };
         
         if (error && !isProduction) {
@@ -181,7 +268,7 @@ const secureLogger = {
             environment: process.env.NODE_ENV || 'development',
             operation: 'info',
             message,
-            ...filterAllowedFields(data)
+            ...filterAndPseudonymizeData(data)
         };
         console.log('ℹ️ Info:', logData);
     },
@@ -193,17 +280,42 @@ const secureLogger = {
             environment: process.env.NODE_ENV || 'development',
             operation: 'warning',
             message,
-            ...filterAllowedFields(data)
+            ...filterAndPseudonymizeData(data)
         };
         console.warn('⚠️ Avertissement:', logData);
+    },
+    
+    // Fonction utilitaire pour le debugging (développement uniquement)
+    debug: {
+        // Récupérer l'email original depuis le hash
+        getEmailFromHash: (hash) => getOriginalValue(hash),
+        
+        // Récupérer l'UID original depuis le hash
+        getUIDFromHash: (hash) => getOriginalValue(hash),
+        
+        // Lister tous les mappings (développement uniquement)
+        listMappings: () => {
+            if (isProduction) return '***production***';
+            return {
+                emails: Object.fromEntries(pseudonymCache),
+                uids: Object.fromEntries(pseudonymCache)
+            };
+        },
+        
+        // Nettoyer le cache
+        clearCache: clearPseudonymCache
     }
 };
 
 module.exports = {
     secureLogger,
-    filterAllowedFields,
+    filterAndPseudonymizeData,
+    pseudonymizeEmail,
+    pseudonymizeUID,
     generateRequestId,
     anonymizeIP,
     sanitizeUserAgent,
-    ALLOWED_LOG_FIELDS
+    ALLOWED_LOG_FIELDS,
+    getOriginalValue,
+    clearPseudonymCache
 }; 
