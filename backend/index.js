@@ -3,6 +3,8 @@ const cors = require('cors');
 const axios = require('axios');
 const cookieParser = require('cookie-parser');
 const { admin } = require('./firebase-config');
+const { globalLimiter } = require('./middleware/rateLimit');
+const { hashEmail } = require('./middleware/rateLimit');
 const authRoutes = require('./routes/auth');
 const authMiddleware = require('./middleware/auth');
 const conversationsRoutes = require('./routes/conversations');
@@ -15,6 +17,28 @@ const port = process.env.PORT || 3006;
 // Configuration de l'environnement
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Configuration trust proxy pour récupérer la vraie IP
+// CRITIQUE pour le rate limiting derrière un load balancer/proxy
+app.set('trust proxy', 1);
+
+// Middleware de sécurité pour bannir le bypass en production
+app.use((req, res, next) => {
+    // BANNIR le header bypass en production
+    if (isProduction && req.headers['x-test-mode']) {
+        console.error('🚫 Tentative de bypass détectée en production:', {
+            ip: req.ip,
+            userAgent: req.get('User-Agent'),
+            timestamp: new Date().toISOString()
+        });
+        return res.status(403).json({
+            success: false,
+            error: 'Accès interdit',
+            code: 'FORBIDDEN'
+        });
+    }
+    next();
+});
+
 // Fonction utilitaire pour masquer les informations sensibles
 const maskSensitiveData = (obj) => {
     if (typeof obj !== 'object' || obj === null) return obj;
@@ -25,7 +49,12 @@ const maskSensitiveData = (obj) => {
     
     Object.keys(masked).forEach(key => {
         if (sensitiveKeys.includes(key.toLowerCase())) {
-            masked[key] = '***masked***';
+            if (key.toLowerCase() === 'email' && typeof masked[key] === 'string') {
+                // Anonymiser les emails avec hash
+                masked[key] = hashEmail(masked[key]);
+            } else {
+                masked[key] = '***masked***';
+            }
         } else if (typeof masked[key] === 'object') {
             masked[key] = maskSensitiveData(masked[key]);
         }
@@ -90,6 +119,9 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+
+// Application du rate limiting global
+app.use(globalLimiter);
 
 // Headers de sécurité
 app.use((req, res, next) => {

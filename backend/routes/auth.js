@@ -3,6 +3,7 @@ const router = express.Router();
 const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/auth');
+const { passwordResetLimiter, loginLimiter, signupLimiter } = require('../middleware/rateLimit');
 
 // Vérification de la présence du JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -24,7 +25,7 @@ const allowedOrigins = [
 ].filter(Boolean); // Supprime les valeurs undefined
 
 // Endpoint de login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -259,7 +260,7 @@ router.post('/logout', (req, res) => {
 });
 
 // Endpoint d'inscription
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupLimiter, async (req, res) => {
     try {
         const { email, password, firstName, lastName, referralSource, otherReferralSource, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
 
@@ -392,7 +393,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 // Endpoint de réinitialisation du mot de passe (mot de passe oublié)
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) {
@@ -402,7 +403,7 @@ router.post('/reset-password', async (req, res) => {
         console.log('🔄 === DÉBUT RÉINITIALISATION MOT DE PASSE ===');
         console.log('🔄 Email:', email);
 
-        // 🔄 OPTION 1 : Utiliser Firebase Auth REST API (envoi automatique)
+        // 🔄 Utiliser Firebase Auth REST API (envoi automatique)
         console.log('🔄 Utilisation de Firebase Auth REST API pour l\'envoi automatique...');
         try {
             const resetResponse = await fetch(
@@ -430,14 +431,15 @@ router.post('/reset-password', async (req, res) => {
             return res.json({ 
                 success: true, 
                 message: 'Email de réinitialisation envoyé avec succès.',
-                firebaseResponse: resetData
+                firebaseResponse: resetData,
+                method: 'firebase_rest_api'
             });
 
         } catch (restApiError) {
             console.error('❌ Erreur avec Firebase Auth REST API:', restApiError);
             console.log('🔄 Tentative avec Firebase Admin SDK...');
             
-            // 🔄 OPTION 2 : Fallback avec Firebase Admin SDK
+            // 🔄 Fallback avec Firebase Admin SDK
             try {
                 // Vérifier que l'utilisateur existe
                 const userRecord = await admin.auth().getUserByEmail(email);
@@ -458,7 +460,8 @@ router.post('/reset-password', async (req, res) => {
                     success: true, 
                     message: 'Lien de réinitialisation généré. Email à envoyer manuellement.',
                     resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined,
-                    note: 'Email non envoyé automatiquement - implémentation requise'
+                    note: 'Email non envoyé automatiquement - implémentation requise',
+                    method: 'firebase_admin_sdk'
                 });
 
             } catch (adminError) {
