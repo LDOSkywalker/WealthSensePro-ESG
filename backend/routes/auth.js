@@ -367,17 +367,25 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // Endpoint de modification du mot de passe
 router.put('/password', authMiddleware, async (req, res) => {
     try {
+        console.log('🔐 === DÉBUT CHANGEMENT MOT DE PASSE ===');
+        console.log('🔐 Headers:', req.headers);
+        console.log('🔐 Content-Type:', req.get('Content-Type'));
+        console.log('🔐 Body complet:', JSON.stringify(req.body, null, 2));
+        console.log('🔐 currentPassword:', req.body?.currentPassword);
+        console.log('🔐 newPassword:', req.body?.newPassword);
+        
         const { currentPassword, newPassword } = req.body;
         const uid = req.user.uid;
         const email = req.user.email;
 
-        console.log('🔐 === DÉBUT CHANGEMENT MOT DE PASSE ===');
         console.log('🔐 UID:', uid);
         console.log('🔐 Email:', email);
         console.log('🔐 Vérification du mot de passe actuel...');
 
         // 🔐 ÉTAPE 1 : Vérification du mot de passe actuel
         if (!currentPassword) {
+            console.error('❌ Mot de passe actuel manquant dans req.body');
+            console.error('❌ req.body:', req.body);
             return res.status(400).json({ 
                 success: false, 
                 error: 'Le mot de passe actuel est requis',
