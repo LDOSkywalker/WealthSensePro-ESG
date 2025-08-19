@@ -194,8 +194,8 @@ export const authService = {
         await axios.put(`${API_URL}/auth/profile`, { firstName, lastName }, { withCredentials: true });
     },
 
-    async updatePassword(newPassword: string): Promise<void> {
-        await axios.put(`${API_URL}/auth/password`, { newPassword }, { withCredentials: true });
+    async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+        await axios.put(`${API_URL}/auth/password`, { currentPassword, newPassword }, { withCredentials: true });
     },
 
     async resetPassword(email: string): Promise<void> {

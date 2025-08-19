@@ -99,11 +99,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, darkMode =
     }
     
     try {
-      await authService.updatePassword(newPassword);
+      await authService.updatePassword(currentPassword, newPassword);
       
       setSuccess("Votre mot de passe a été mis à jour avec succès.");
       setNewPassword('');
       setConfirmPassword('');
+      setCurrentPassword(''); // Réinitialiser aussi le mot de passe actuel
     } catch (err: any) {
       setPasswordError(err.response?.data?.error || "Une erreur est survenue lors de la mise à jour du mot de passe.");
     } finally {
