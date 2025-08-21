@@ -45,7 +45,10 @@ const AppRoutes: React.FC = () => {
   };
 
   // Si la session est révoquée, afficher le blocage complet
+  console.log('🔍 App.tsx - État de la session:', { isSessionRevoked, sessionRevokedError });
+  
   if (isSessionRevoked && sessionRevokedError) {
+    console.log('🚨 Affichage du blocage complet de session');
     return (
       <SessionExpiredBlock
         error={sessionRevokedError}

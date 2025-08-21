@@ -82,16 +82,19 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       }
     });
 
-    // Écouter les événements de session révoquée
+    // Écouter les événements de session révoquée (PC et Mobile)
     const handleSessionRevokedEvent = (event: CustomEvent) => {
       console.log('🚨 Événement session révoquée reçu dans AuthContext:', event.detail);
       console.log('🔍 Type d\'événement:', event.type);
       console.log('📱 Définition de sessionRevokedError...');
       setSessionRevokedError(event.detail);
-      console.log('✅ sessionRevokedError défini avec succès');
+      setIsSessionRevoked(true);
+      console.log('✅ sessionRevokedError et isSessionRevoked définis avec succès');
     };
 
+    // Écouter les deux types d'événements
     window.addEventListener('sessionRevoked', handleSessionRevokedEvent as EventListener);
+    window.addEventListener('mobileSessionRevoked', handleSessionRevokedEvent as EventListener);
 
     // Vérification du localStorage pour mobile (mini-modale)
     const checkLocalStorageForMobileSessionRevoked = () => {
@@ -131,6 +134,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       return () => {
         stopAutoRefresh();
         window.removeEventListener('sessionRevoked', handleSessionRevokedEvent as EventListener);
+        window.removeEventListener('mobileSessionRevoked', handleSessionRevokedEvent as EventListener);
         clearInterval(localStorageInterval);
       };
     }
@@ -139,6 +143,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     return () => {
       stopAutoRefresh();
       window.removeEventListener('sessionRevoked', handleSessionRevokedEvent as EventListener);
+      window.removeEventListener('mobileSessionRevoked', handleSessionRevokedEvent as EventListener);
     };
   }, []);
 
