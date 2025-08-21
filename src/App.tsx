@@ -7,8 +7,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConversationProvider } from './contexts/ConversationContext';
 import ResetPassword from './components/ResetPassword';
 import { SessionListener } from './components/SessionListener';
-import { SessionRevokedModal } from './components/SessionRevokedModal';
-import { MobileSessionRevokedModal } from './components/MobileSessionRevokedModal';
 import { SessionExpiredBlock } from './components/SessionExpiredBlock';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
