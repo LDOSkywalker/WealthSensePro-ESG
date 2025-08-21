@@ -12,6 +12,15 @@ axios.defaults.withCredentials = true;
 // Intercepteur pour logger toutes les requêtes
 axios.interceptors.request.use(
     (config) => {
+        // Vérifier si la session est révoquée
+        const isSessionRevoked = localStorage.getItem('mobileSessionRevoked') || 
+                                localStorage.getItem('sessionRevoked');
+        
+        if (isSessionRevoked) {
+            console.log('🚫 Requête bloquée - Session révoquée détectée');
+            return Promise.reject(new Error('SESSION_REVOKED_BLOCKED'));
+        }
+        
         console.log('🚀 Requête envoyée:', {
             url: config.url,
             method: config.method,

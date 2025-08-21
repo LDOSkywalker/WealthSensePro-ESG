@@ -6,12 +6,14 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   sessionRevokedError: SessionRevokedError | null;
+  isSessionRevoked: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
   handleSessionRevoked: (error: SessionRevokedError) => void;
   clearSessionRevokedError: () => void;
   handleSessionUpdated: (sessionInfo: SessionInfo) => void;
+  forceReconnect: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionRevokedError, setSessionRevokedError] = useState<SessionRevokedError | null>(null);
+  const [isSessionRevoked, setIsSessionRevoked] = useState(false);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fonction pour démarrer l'auto-refresh
@@ -159,16 +162,36 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const handleSessionRevoked = (error: SessionRevokedError) => {
     console.log('🚨 Gestion de la session révoquée:', error);
     setSessionRevokedError(error);
+    setIsSessionRevoked(true);
     
     // Arrêter l'auto-refresh
     stopAutoRefresh();
     
     // Déconnecter l'utilisateur
     setCurrentUser(null);
+    
+    // Nettoyer le localStorage et les cookies
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Supprimer les cookies d'authentification
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
   };
 
   const clearSessionRevokedError = () => {
     setSessionRevokedError(null);
+  };
+
+  const forceReconnect = () => {
+    console.log('🔄 Forçage de la reconnexion...');
+    setIsSessionRevoked(false);
+    setSessionRevokedError(null);
+    setCurrentUser(null);
+    
+    // Rediriger vers la page de login
+    window.location.href = '/login';
   };
 
   const handleSessionUpdated = (sessionInfo: SessionInfo) => {
@@ -181,12 +204,14 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       currentUser, 
       loading, 
       sessionRevokedError,
+      isSessionRevoked,
       login, 
       logout, 
       refreshToken,
       handleSessionRevoked,
       clearSessionRevokedError,
-      handleSessionUpdated
+      handleSessionUpdated,
+      forceReconnect
     }}>
       {children}
     </AuthContext.Provider>

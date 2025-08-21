@@ -9,6 +9,7 @@ import ResetPassword from './components/ResetPassword';
 import { SessionListener } from './components/SessionListener';
 import { SessionRevokedModal } from './components/SessionRevokedModal';
 import { MobileSessionRevokedModal } from './components/MobileSessionRevokedModal';
+import { SessionExpiredBlock } from './components/SessionExpiredBlock';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, loading } = useAuth();
@@ -32,16 +33,26 @@ const AppRoutes: React.FC = () => {
   const { 
     currentUser, 
     loading, 
-    sessionRevokedError,
+    sessionRevokedError, isSessionRevoked,
     handleSessionRevoked,
     clearSessionRevokedError,
-    handleSessionUpdated
+    handleSessionUpdated, forceReconnect
   } = useAuth();
 
   // Fonction pour détecter si on est sur mobile
   const isMobileDevice = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
+
+  // Si la session est révoquée, afficher le blocage complet
+  if (isSessionRevoked && sessionRevokedError) {
+    return (
+      <SessionExpiredBlock
+        error={sessionRevokedError}
+        onReconnect={forceReconnect}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -61,34 +72,7 @@ const AppRoutes: React.FC = () => {
         />
       )}
 
-      {/* Modal de session révoquée */}
-      {/* Modale desktop pour PC */}
-      <SessionRevokedModal
-        isOpen={!!sessionRevokedError && !isMobileDevice()}
-        error={sessionRevokedError}
-        onClose={clearSessionRevokedError}
-        onReconnect={() => {
-          clearSessionRevokedError();
-          window.location.href = '/login';
-        }}
-        onReportSuspicious={() => {
-          clearSessionRevokedError();
-          // Ici on peut ajouter la logique pour signaler une activité suspecte
-          console.log('🚨 Activité suspecte signalée');
-          window.location.href = '/login';
-        }}
-      />
-      
-      {/* Mini-modale mobile pour smartphone/tablet */}
-      <MobileSessionRevokedModal
-        isOpen={!!sessionRevokedError && isMobileDevice()}
-        error={sessionRevokedError}
-        onClose={clearSessionRevokedError}
-        onReconnect={() => {
-          clearSessionRevokedError();
-          window.location.href = '/login';
-        }}
-      />
+      {/* Les modales ne sont plus nécessaires - remplacées par le blocage complet */}
 
       <Routes>
         <Route path="/login" element={<Login />} />
