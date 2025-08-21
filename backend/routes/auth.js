@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/auth');
 const { passwordResetLimiter, loginLimiter, signupLimiter } = require('../middleware/rateLimit');
 const { secureLogger } = require('../utils/secureLogger');
+const sessionManager = require('../utils/sessionManager');
 
 // Vérification de la présence du JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -66,29 +67,15 @@ router.post('/login', loginLimiter, async (req, res) => {
         
         secureLogger.info('Utilisateur trouvé', { uid: userCredential.uid });
 
-        // 🔐 ÉTAPE 3 : Génération des tokens JWT (flux hybride préservé)
-        secureLogger.info('Génération des tokens JWT...');
-        const accessToken = jwt.sign(
-            { 
-                uid: userCredential.uid, 
-                email: userCredential.email,
-                type: 'access',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '15m' } // Access token court
+        // 🔐 ÉTAPE 3 : Génération des tokens JWT avec gestion de session sécurisée
+        secureLogger.info('Génération des tokens JWT avec session sécurisée...');
+        const session = await sessionManager.createSession(
+            userCredential.uid, 
+            userCredential.email, 
+            req
         );
-
-        const refreshToken = jwt.sign(
-            { 
-                uid: userCredential.uid, 
-                email: userCredential.email,
-                type: 'refresh',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' } // Refresh token long
-        );
+        
+        const { accessToken, refreshToken } = session;
 
         secureLogger.info('Login réussi', { uid: userCredential.uid, email: userCredential.email });
         
@@ -138,7 +125,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 });
 
-// Endpoint de rafraîchissement du token
+// Endpoint de rafraîchissement du token avec rotation sécurisée
 router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['__Host-refresh_token'];
@@ -151,42 +138,30 @@ router.post('/refresh', async (req, res) => {
             });
         }
 
-        // Vérifier le refresh token
-        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        // Rafraîchir la session avec rotation du refresh token
+        const session = await sessionManager.refreshSession(refreshToken, req);
         
-        if (decoded.type !== 'refresh') {
-            return res.status(401).json({
-                success: false,
-                error: 'Token invalide',
-                code: 'INVALID_TOKEN_TYPE'
-            });
-        }
-
-        // Vérifier que l'utilisateur existe toujours
-        const user = await admin.auth().getUser(decoded.uid);
-        
-        secureLogger.info('Access token rafraîchi', { uid: user.uid });
-
-        // Générer un nouvel access token
-        const newAccessToken = jwt.sign(
-            { 
-                uid: user.uid, 
-                email: user.email,
-                type: 'access',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '15m' }
-        );
+        // Mettre à jour le cookie avec le nouveau refresh token
+        res.cookie('__Host-refresh_token', session.refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+        });
 
         res.json({
             success: true,
-            access_token: newAccessToken,
+            access_token: session.accessToken,
             exp: Date.now() + (15 * 60 * 1000)
         });
 
     } catch (error) {
         secureLogger.error('Erreur refresh token', error);
+        
+        // En cas d'erreur de sécurité, révoquer le cookie
+        res.clearCookie('__Host-refresh_token');
+        
         res.status(401).json({
             success: false,
             error: 'Token invalide ou expiré',
@@ -195,11 +170,27 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-// Endpoint de déconnexion
+// Endpoint de déconnexion avec révocation de session
 router.post('/logout', async (req, res) => {
     try {
+        const refreshToken = req.cookies['__Host-refresh_token'];
+        
+        if (refreshToken) {
+            try {
+                // Décoder le token pour récupérer l'uid et deviceId
+                const decoded = jwt.verify(refreshToken, JWT_SECRET);
+                if (decoded.typ === 'refresh' && decoded.sub && decoded.dev) {
+                    // Révoquer la session de l'utilisateur
+                    await sessionManager.logoutUser(decoded.sub, decoded.dev);
+                }
+            } catch (error) {
+                // Si le token est invalide, on continue avec le logout
+                secureLogger.warn('Token invalide lors du logout', error);
+            }
+        }
+        
         res.clearCookie('__Host-refresh_token');
-        secureLogger.info('Utilisateur déconnecté');
+        secureLogger.info('Utilisateur déconnecté avec révocation de session');
         res.json({ success: true });
     } catch (error) {
         secureLogger.error('Erreur logout', error);
@@ -239,28 +230,14 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
         secureLogger.info('Utilisateur créé avec succès', { uid: userRecord.uid });
 
-        // Générer les tokens
-        const accessToken = jwt.sign(
-            { 
-                uid: userRecord.uid, 
-                email: userRecord.email,
-                type: 'access',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '15m' }
+        // Générer les tokens avec gestion de session sécurisée
+        const session = await sessionManager.createSession(
+            userRecord.uid, 
+            userRecord.email, 
+            req
         );
-
-        const refreshToken = jwt.sign(
-            { 
-                uid: userRecord.uid, 
-                email: userRecord.email,
-                type: 'refresh',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        
+        const { accessToken, refreshToken } = session;
 
         // Définir le cookie refresh_token
         res.cookie('__Host-refresh_token', refreshToken, {

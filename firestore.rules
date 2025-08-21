@@ -82,6 +82,15 @@ service cloud.firestore {
       }
     }
     
+    // Rules for sessions collection (gestion des sessions sécurisées)
+    match /sessions/{sessionId} {
+      // Seul le backend peut créer/modifier/supprimer les sessions
+      allow read, write: if false;
+      
+      // Les sessions sont gérées uniquement par le serveur backend
+      // via les règles d'authentification et de session
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;

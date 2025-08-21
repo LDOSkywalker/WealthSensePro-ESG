@@ -422,6 +422,124 @@ axios.defaults.withCredentials = true;
 ✅ **Protection CSRF** : Headers personnalisés requis  
 ✅ **Auto-refresh** : Transparent pour l'utilisateur  
 ✅ **Multi-device** : Fonctionne sur tous les navigateurs et devices  
+✅ **Refresh tokens rotatifs** : Rotation automatique à chaque utilisation  
+✅ **Détection de réutilisation** : Alerte et révocation en cas de compromission  
+✅ **Gestion des sessions en base** : Traçabilité complète des connexions  
+✅ **Révocation de famille** : Suppression de tous les tokens d'un appareil compromis
+
+## 🔐 Système de sessions sécurisées (Nouveau)
+
+### Vue d'ensemble
+
+Le système de gestion des sessions a été entièrement refactorisé pour répondre aux exigences de sécurité critiques identifiées par le CTO. Il implémente les **refresh tokens rotatifs** avec **détection de réutilisation** et **gestion des sessions en base de données**.
+
+### 🚨 Problème de sécurité résolu
+
+**Ancien système (VULNÉRABLE) :**
+- Refresh tokens statiques pendant 7 jours
+- Pas de rotation des tokens
+- Pas de détection de réutilisation
+- Impossible de révoquer un token volé
+
+**Nouveau système (SÉCURISÉ) :**
+- Refresh tokens rotatifs à chaque utilisation
+- Détection automatique de réutilisation
+- Révocation de famille en cas de compromission
+- Gestion des sessions en base de données
+
+### 🏗️ Architecture technique
+
+#### Composants principaux
+
+1. **`SessionManager`** - Gestion des sessions avec rotation
+   - Création de sessions sécurisées
+   - Rotation automatique des refresh tokens
+   - Détection de réutilisation
+   - Révocation de famille
+
+2. **`SessionCleanup`** - Nettoyage automatique
+   - Suppression des sessions expirées
+   - Statistiques des sessions
+   - Nettoyage périodique
+
+3. **Routes d'administration** - Surveillance et gestion
+   - Statistiques des sessions
+   - Révocation manuelle
+   - Monitoring de la sécurité
+
+#### Structure de la base de données
+
+```javascript
+// Collection 'sessions'
+{
+  uid: "string",           // ID utilisateur Firebase
+  deviceId: "string",      // Hash de l'appareil (IP + User-Agent)
+  email: "string",         // Email de l'utilisateur
+  status: "active" | "rotated" | "revoked" | "logged_out",
+  createdAt: timestamp,    // Date de création
+  lastUsed: timestamp,     // Dernière utilisation
+  tokenFamily: "string",   // Famille de tokens (deviceId)
+  rotatedFrom: "string",  // JTI du token précédent
+  revokedAt: timestamp,   // Date de révocation
+  reason: "string"        // Raison de la révocation
+}
+```
+
+### 🔄 Flux de fonctionnement
+
+#### 1. **Connexion (Login)**
+```javascript
+// Création d'une nouvelle session
+const session = await sessionManager.createSession(uid, email, req);
+// - Génère un JTI unique
+// - Crée un deviceId basé sur IP + User-Agent
+// - Stocke la session en base
+// - Retourne access + refresh tokens
+```
+
+#### 2. **Rafraîchissement (Refresh)**
+```javascript
+// Rotation du refresh token
+const session = await sessionManager.refreshSession(prevRefreshToken, req);
+// - Vérifie la validité de l'ancien token
+// - Marque l'ancien comme "rotated"
+// - Crée un nouveau refresh token
+// - Met à jour la base de données
+```
+
+#### 3. **Détection de réutilisation**
+```javascript
+// Si un ancien token est réutilisé
+if (sessionData.status !== 'active') {
+  // Révocation de toute la famille
+  await sessionManager.revokeFamily(deviceId);
+  throw new Error('Session révoquée');
+}
+```
+
+### 🛡️ Mesures de sécurité
+
+- **Protection contre le vol** : Rotation automatique + JTI unique + Device binding
+- **Détection de compromission** : Vérification de statut + Détection de réutilisation
+- **Révocation automatique** : Suppression de toute la famille compromise
+- **Gestion des sessions** : Statuts multiples + Traçabilité + Nettoyage automatique
+
+### 📊 Endpoints d'administration
+
+```http
+GET  /api/admin/sessions/stats          # Statistiques des sessions
+POST /api/admin/sessions/cleanup        # Nettoyage forcé
+POST /api/admin/sessions/revoke-family  # Révocation de famille
+GET  /api/admin/sessions/device/:id     # Sessions d'un appareil
+GET  /api/admin/sessions/user/:uid      # Sessions d'un utilisateur
+POST /api/admin/sessions/revoke-user    # Révocation de toutes les sessions
+```
+
+### 🚀 Déploiement
+
+- **Migration transparente** : Les nouveaux logins utilisent automatiquement le système sécurisé
+- **Compatibilité** : Les anciens tokens continuent de fonctionner jusqu'à expiration
+- **Nettoyage automatique** : Suppression des sessions expirées toutes les heures
 
 ## 🏦 Module de gestion patrimoniale
 
@@ -862,3 +980,4 @@ npm-check-updates -u
 ---
 
 *Dernière mise à jour : 19/08/2025 - Documentation complète du frontend WealthSensePro-ESG avec architecture détaillée, composants, sécurité et déploiement*
+

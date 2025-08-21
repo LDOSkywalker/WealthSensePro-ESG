@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
 const { secureLogger } = require('../utils/secureLogger');
+const sessionManager = require('../utils/sessionManager');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_super_securise';
 
@@ -46,12 +47,29 @@ const authMiddleware = async (req, res, next) => {
                 });
             }
             
+            // Vérifier la session en base si un sessionId est présent
+            if (decoded.sessionId) {
+                const sessionValidation = await sessionManager.validateSession(decoded.sessionId);
+                if (!sessionValidation.valid) {
+                    secureLogger.security('Session invalide détectée', {
+                        sessionIdHash: decoded.sessionId,
+                        reason: sessionValidation.reason,
+                        uidHash: decoded.uid
+                    });
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Session invalide'
+                    });
+                }
+            }
+            
             // Log de succès JWT (avec pseudonymisation)
             secureLogger.info('JWT vérifié avec succès', null, {
                 uidHash: decoded.uid,
                 emailHash: decoded.email,
                 tokenType: decoded.type,
-                loginTime: decoded.loginTime
+                loginTime: decoded.loginTime,
+                sessionIdHash: decoded.sessionId
             });
         } catch (error) {
             secureLogger.error('Erreur de vérification du token', error);
