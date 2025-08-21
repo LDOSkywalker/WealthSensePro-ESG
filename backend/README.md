@@ -1156,6 +1156,8 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 
 La fonctionnalité **Single-Active-Session avec Handoff Explicite** a été implémentée avec succès dans la **Phase 1**. Cette fonctionnalité garantit qu'un seul utilisateur peut être connecté simultanément par défaut, avec une révocation atomique des sessions existantes lors de nouvelles connexions.
 
+**🚀 Phase 2 Frontend : Blocage complet de l'interface implémenté avec succès !**
+
 ### 🔐 **Architecture de sécurité**
 
 #### **Policies de session configurables :**
@@ -1257,6 +1259,33 @@ La fonctionnalité **Single-Active-Session avec Handoff Explicite** a été impl
 - `PUT /api/admin/users/:uid/policy` : Changer la policy d'un utilisateur
 - `GET /api/admin/users/:uid/policy` : Récupérer la policy actuelle
 - `POST /api/admin/sessions/revoke-user` : Révoquer toutes les sessions d'un utilisateur
+
+#### **5. Intégration Frontend - Phase 2 ✅**
+
+**🚀 Blocage complet de l'interface implémenté avec succès !**
+
+**Fonctionnalités frontend :**
+- **Détection automatique** des erreurs `SESSION_REVOKED` via intercepteur Axios
+- **Blocage complet de l'interface** avec `SessionExpiredBlock`
+- **Gestion distincte PC/Mobile** : événements `sessionRevoked` et `mobileSessionRevoked`
+- **Blocage automatique de toutes les requêtes API** si session révoquée
+- **Nettoyage complet des données sensibles** (localStorage, cookies, sessionStorage)
+- **Impossibilité de contourner la sécurité** : redirection forcée vers login
+
+**Architecture frontend :**
+```typescript
+// AuthContext avec état global
+interface AuthContextType {
+  isSessionRevoked: boolean;           // État de blocage global
+  sessionRevokedError: SessionRevokedError | null;
+  forceReconnect: () => void;          // Redirection forcée
+}
+
+// App.tsx avec blocage conditionnel
+if (isSessionRevoked && sessionRevokedError) {
+  return <SessionExpiredBlock />;  // Interface complètement bloquée
+}
+```
 
 ### 🧪 **Tests et validation**
 
@@ -1392,4 +1421,4 @@ secureLogger.info('Révocation atomique effectuée', null, {
 
 ---
 
-*Dernière mise à jour : 21/08/2025 - Phase 1 Single-Active-Session implémentée avec succès + Documentation complète + Tests validés* 
+*Dernière mise à jour : 21/08/2025 - Phase 1 Single-Active-Session implémentée avec succès + Phase 2 Frontend Blocage complet implémenté avec succès + Documentation complète + Tests validés* 

@@ -11,20 +11,27 @@ La **Phase 2 Frontend** implémente la gestion temps réel des sessions côté c
 - **Détection immédiate** des sessions révoquées
 - **Gestion des événements** Firestore avec cleanup automatique
 
-### ✅ **2. Modal de Déconnexion Forcée**
+### ✅ **2. Blocage Complet de l'Interface**
+- **Écran de blocage complet** `SessionExpiredBlock` remplaçant l'interface
+- **Sécurité maximale** : impossibilité de contourner la révocation
+- **Gestion unifiée PC/Mobile** : même comportement sur tous les devices
 - **Interface utilisateur claire** expliquant la raison de la déconnexion
-- **Options d'action** : Se reconnecter ou signaler une activité suspecte
+- **Action obligatoire** : Se reconnecter (plus d'options de contournement)
 - **Informations techniques** : Timestamp et session remplaçante
 
 ### ✅ **3. Gestion des Erreurs 401 SESSION_REVOKED**
 - **Intercepteur axios** pour détecter automatiquement les erreurs de session
 - **Événements personnalisés** pour la communication entre composants
+- **Blocage automatique de toutes les requêtes API** si session révoquée
 - **Hard logout automatique** lors de révocation
+- **Nettoyage complet des données sensibles** (localStorage, cookies, sessionStorage)
 
 ### ✅ **4. Intégration avec AuthContext**
 - **État centralisé** des erreurs de session
+- **État global `isSessionRevoked`** pour le blocage complet
 - **Gestion automatique** de la déconnexion
 - **Cleanup des ressources** (auto-refresh, listeners)
+- **Écoute des deux types d'événements** : `sessionRevoked` et `mobileSessionRevoked`
 
 ## 🏗️ **Architecture des composants**
 
@@ -32,16 +39,18 @@ La **Phase 2 Frontend** implémente la gestion temps réel des sessions côté c
 App.tsx
 ├── AuthProvider (AuthContext)
 │   ├── SessionListener (Firestore temps réel)
-│   └── SessionRevokedModal (Interface utilisateur)
-└── Routes de l'application
+│   └── SessionExpiredBlock (Blocage complet de l'interface)
+└── Routes de l'application (bloquées si session révoquée)
 ```
 
 ### **Composants créés :**
 
 1. **`SessionListener.tsx`** : Écoute Firestore temps réel
-2. **`SessionRevokedModal.tsx`** : Modal de déconnexion forcée
+2. **`SessionExpiredBlock.tsx`** : **Écran de blocage complet de l'interface**
 3. **`SessionTest.tsx`** : Composant de test et validation
 4. **`firebase.ts`** : Configuration Firebase centralisée
+
+**Note :** `SessionRevokedModal.tsx` a été remplacé par `SessionExpiredBlock.tsx` pour une sécurité maximale
 
 ## 🔧 **Configuration requise**
 
@@ -96,23 +105,31 @@ Le composant `SessionTest` permet de valider le fonctionnement :
 2. **Nouvelle connexion** sur l'appareil B
 3. **Backend révoque** automatiquement la session A
 4. **Frontend détecte** la révocation en temps réel
-5. **Modal s'affiche** avec explication et options
-6. **Utilisateur choisit** de se reconnecter ou signaler
+5. **Écran de blocage complet** remplace l'interface
+6. **Utilisateur doit obligatoirement** se reconnecter
+7. **Impossible de contourner** la sécurité
 
 ### **Interface utilisateur :**
 
 ```
 ┌─────────────────────────────────────┐
-│           ⚠️ Session Révoquée      │
+│        🚨 SESSION EXPIRÉE          │
 ├─────────────────────────────────────┤
-│ Vous avez été déconnecté car une   │
-│ nouvelle session a été créée depuis │
-│ un autre appareil.                 │
+│           Accès bloqué             │
+│      pour votre sécurité           │
+├─────────────────────────────────────┤
+│ Votre session a été révoquée car   │
+│ une nouvelle connexion a été       │
+│ établie depuis un autre appareil.  │
 │                                   │
-│ Si ce n'était pas vous, votre     │
-│ compte pourrait être compromis.    │
+│ 🔒 Pour votre sécurité, toutes les │
+│ sessions précédentes ont été       │
+│ automatiquement révoquées.         │
 ├─────────────────────────────────────┤
-│ [Se reconnecter] [Signaler] [Fermer]│
+│     🔐 Se reconnecter maintenant   │
+├─────────────────────────────────────┤
+│ Cette action est obligatoire pour  │
+│ continuer à utiliser l'application │
 └─────────────────────────────────────┘
 ```
 
@@ -121,7 +138,10 @@ Le composant `SessionTest` permet de valider le fonctionnement :
 ### **Mesures de sécurité implémentées :**
 
 - ✅ **Détection temps réel** des sessions révoquées
+- ✅ **Blocage complet de l'interface** sans possibilité de contournement
+- ✅ **Blocage automatique de toutes les requêtes API** si session révoquée
 - ✅ **Hard logout automatique** sans intervention utilisateur
+- ✅ **Nettoyage complet des données sensibles** (localStorage, cookies, sessionStorage)
 - ✅ **Événements sécurisés** entre composants
 - ✅ **Cleanup automatique** des ressources et listeners
 - ✅ **Gestion des erreurs** avec fallback

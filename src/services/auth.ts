@@ -17,21 +17,12 @@ axios.interceptors.request.use(
                                 localStorage.getItem('sessionRevoked');
         
         if (isSessionRevoked) {
-            console.log('🚫 Requête bloquée - Session révoquée détectée');
             return Promise.reject(new Error('SESSION_REVOKED_BLOCKED'));
         }
-        
-        console.log('🚀 Requête envoyée:', {
-            url: config.url,
-            method: config.method,
-            withCredentials: config.withCredentials,
-            headers: config.headers
-        });
         
         // Ajouter le token depuis la mémoire si disponible
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
-            console.log('🔐 Token ajouté depuis la mémoire');
         }
         
         // Ajouter le header X-Requested-With pour CSRF
@@ -65,43 +56,24 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = [];
 };
 
-// Intercepteur pour logger toutes les réponses et gérer l'auto-refresh
-axios.interceptors.response.use(
-    (response) => {
-        console.log('✅ Réponse reçue:', {
-            url: response.config.url,
-            status: response.status,
-            data: response.data
-        });
-        
-        return response;
-    },
-    async (error) => {
-        const originalRequest = error.config;
-        
-        console.error('❌ Erreur réponse:', {
-            url: error.config?.url,
-            status: error.response?.status,
-            data: error.response?.data
-        });
+        // Intercepteur pour gérer l'auto-refresh et les sessions révoquées
+        axios.interceptors.response.use(
+            (response) => {
+                return response;
+            },
+            async (error) => {
+                const originalRequest = error.config;
 
         // Gestion spéciale des erreurs SESSION_REVOKED - PRIORITÉ MAXIMALE
         if (error.response?.data?.code === 'SESSION_REVOKED') {
-            console.log('🚨 Session révoquée détectée:', error.response.data);
-            
             // Détection de l'environnement mobile
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            console.log('📱 Environnement détecté:', isMobile ? 'Mobile' : 'Desktop');
             
             if (isMobile) {
-                // Sur mobile : afficher directement la mini-modale
-                console.log('📱 Affichage direct de la mini-modale mobile');
-                
-                // Stocker les données pour la mini-modale mobile
+                // Sur mobile : stocker et émettre l'événement
                 localStorage.setItem('mobileSessionRevoked', JSON.stringify(error.response.data));
                 localStorage.setItem('mobileSessionRevokedTimestamp', Date.now().toString());
                 
-                // Émettre un événement spécifique pour mobile
                 const mobileSessionRevokedEvent = new CustomEvent('mobileSessionRevoked', {
                     detail: error.response.data
                 });
@@ -109,8 +81,6 @@ axios.interceptors.response.use(
                 
             } else {
                 // Sur PC : émettre l'événement pour la modale desktop
-                console.log('🖥️ Émission de l\'événement pour la modale desktop');
-                
                 const sessionRevokedEvent = new CustomEvent('sessionRevoked', {
                     detail: error.response.data
                 });
@@ -205,7 +175,6 @@ export const authService = {
             
             // Stocker le token en mémoire
             accessToken = response.data.access_token;
-            console.log('🔐 Access token stocké en mémoire');
             
             return response.data.user;
         } catch (error: any) {
@@ -227,7 +196,6 @@ export const authService = {
         await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
         // Nettoyer le token en mémoire
         accessToken = null;
-        console.log('🔐 Access token supprimé de la mémoire');
     },
 
     async checkAuth(): Promise<User | null> {
@@ -257,12 +225,10 @@ export const authService = {
             const response = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
             if (response.data.success) {
                 accessToken = response.data.access_token;
-                console.log('🔐 Nouveau access token stocké en mémoire');
                 return true;
             }
             return false;
         } catch (error) {
-            console.error('❌ Erreur refresh token:', error);
             return false;
         }
     },

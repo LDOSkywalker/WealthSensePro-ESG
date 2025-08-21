@@ -84,12 +84,8 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
     // Écouter les événements de session révoquée (PC et Mobile)
     const handleSessionRevokedEvent = (event: CustomEvent) => {
-      console.log('🚨 Événement session révoquée reçu dans AuthContext:', event.detail);
-      console.log('🔍 Type d\'événement:', event.type);
-      console.log('📱 Définition de sessionRevokedError...');
       setSessionRevokedError(event.detail);
       setIsSessionRevoked(true);
-      console.log('✅ sessionRevokedError et isSessionRevoked définis avec succès');
     };
 
     // Écouter les deux types d'événements

@@ -228,12 +228,22 @@ const API_URL = import.meta.env.PROD
 - Auto-refresh transparent des tokens
 - Queue des requêtes en échec
 - Retry automatique après refresh
+- **Détection et gestion des sessions révoquées**
+- **Blocage automatique des requêtes API si session révoquée**
 
 **Gestion des tokens :**
 - Stockage sécurisé en mémoire (access token)
 - Cookie HttpOnly pour le refresh token
 - Rotation automatique des tokens
 - Gestion des échecs de refresh
+
+**Gestion des sessions révoquées :**
+- **Détection automatique des sessions révoquées**
+- **Blocage complet de l'interface utilisateur**
+- **Gestion distincte PC/Mobile (modales vs écran de blocage)**
+- **Nettoyage automatique des données sensibles**
+- **Redirection forcée vers la page de connexion**
+- **Impossibilité de contourner la sécurité**
 
 ### Communication avec le backend
 
