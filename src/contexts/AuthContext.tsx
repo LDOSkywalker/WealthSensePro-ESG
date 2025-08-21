@@ -90,11 +90,11 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
     window.addEventListener('sessionRevoked', handleSessionRevokedEvent as EventListener);
 
-    // Vérification du localStorage pour mobile (fallback)
-    const checkLocalStorageForRevokedSession = () => {
+    // Vérification du localStorage pour mobile (mini-modale)
+    const checkLocalStorageForMobileSessionRevoked = () => {
       try {
-        const revokedSession = localStorage.getItem('sessionRevoked');
-        const revokedTimestamp = localStorage.getItem('sessionRevokedTimestamp');
+        const revokedSession = localStorage.getItem('mobileSessionRevoked');
+        const revokedTimestamp = localStorage.getItem('mobileSessionRevokedTimestamp');
         
         if (revokedSession && revokedTimestamp) {
           const parsedSession = JSON.parse(revokedSession);
@@ -103,26 +103,26 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
           
           // Vérifier que la révocation est récente (moins de 5 minutes)
           if (now - timestamp < 5 * 60 * 1000) {
-            console.log('📱 Session révoquée détectée via localStorage (fallback mobile):', parsedSession);
+            console.log('📱 Session révoquée mobile détectée via localStorage:', parsedSession);
             setSessionRevokedError(parsedSession);
             
             // Nettoyer le localStorage
-            localStorage.removeItem('sessionRevoked');
-            localStorage.removeItem('sessionRevokedTimestamp');
+            localStorage.removeItem('mobileSessionRevoked');
+            localStorage.removeItem('mobileSessionRevokedTimestamp');
           }
         }
       } catch (error) {
-        console.error('❌ Erreur lors de la vérification localStorage:', error);
+        console.error('❌ Erreur lors de la vérification localStorage mobile:', error);
       }
     };
 
     // Vérifier immédiatement et toutes les 2 secondes sur mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile) {
-      console.log('📱 Environnement mobile détecté, activation du fallback localStorage');
-      checkLocalStorageForRevokedSession();
+      console.log('📱 Environnement mobile détecté, activation de la vérification localStorage');
+      checkLocalStorageForMobileSessionRevoked();
       
-      const localStorageInterval = setInterval(checkLocalStorageForRevokedSession, 2000);
+      const localStorageInterval = setInterval(checkLocalStorageForMobileSessionRevoked, 2000);
       
       // Cleanup de l'intervalle
       return () => {

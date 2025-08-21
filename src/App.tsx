@@ -8,6 +8,7 @@ import { ConversationProvider } from './contexts/ConversationContext';
 import ResetPassword from './components/ResetPassword';
 import { SessionListener } from './components/SessionListener';
 import { SessionRevokedModal } from './components/SessionRevokedModal';
+import { MobileSessionRevokedModal } from './components/MobileSessionRevokedModal';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, loading } = useAuth();
@@ -37,6 +38,11 @@ const AppRoutes: React.FC = () => {
     handleSessionUpdated
   } = useAuth();
 
+  // Fonction pour détecter si on est sur mobile
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -56,8 +62,9 @@ const AppRoutes: React.FC = () => {
       )}
 
       {/* Modal de session révoquée */}
+      {/* Modale desktop pour PC */}
       <SessionRevokedModal
-        isOpen={!!sessionRevokedError}
+        isOpen={!!sessionRevokedError && !isMobileDevice()}
         error={sessionRevokedError}
         onClose={clearSessionRevokedError}
         onReconnect={() => {
@@ -68,6 +75,17 @@ const AppRoutes: React.FC = () => {
           clearSessionRevokedError();
           // Ici on peut ajouter la logique pour signaler une activité suspecte
           console.log('🚨 Activité suspecte signalée');
+          window.location.href = '/login';
+        }}
+      />
+      
+      {/* Mini-modale mobile pour smartphone/tablet */}
+      <MobileSessionRevokedModal
+        isOpen={!!sessionRevokedError && isMobileDevice()}
+        error={sessionRevokedError}
+        onClose={clearSessionRevokedError}
+        onReconnect={() => {
+          clearSessionRevokedError();
           window.location.href = '/login';
         }}
       />
