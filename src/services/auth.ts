@@ -76,8 +76,34 @@ axios.interceptors.response.use(
             data: error.response?.data
         });
 
+        // Gestion spéciale des erreurs SESSION_REVOKED - PRIORITÉ MAXIMALE
+        if (error.response?.data?.code === 'SESSION_REVOKED') {
+            console.log('🚨 Session révoquée détectée:', error.response.data);
+            console.log('🔍 Détails de l\'erreur:', {
+                status: error.response.status,
+                code: error.response.data.code,
+                reason: error.response.data.reason,
+                replacedBy: error.response.data.replacedBy
+            });
+            
+            // Émettre un événement personnalisé pour la gestion côté composant
+            const sessionRevokedEvent = new CustomEvent('sessionRevoked', {
+                detail: error.response.data
+            });
+            window.dispatchEvent(sessionRevokedEvent);
+            console.log('📡 Événement sessionRevoked émis avec succès');
+            
+            // Ne pas essayer de rafraîchir le token si la session est révoquée
+            return Promise.reject(error);
+        }
+
         // Si c'est une erreur 401 et qu'on n'est pas déjà en train de rafraîchir
-        if (error.response?.status === 401 && !isRefreshing && !originalRequest._retry && !refreshFailed) {
+        // MAIS SEULEMENT si ce n'est pas une erreur SESSION_REVOKED
+        if (error.response?.status === 401 && 
+            error.response?.data?.code !== 'SESSION_REVOKED' && 
+            !isRefreshing && 
+            !originalRequest._retry && 
+            !refreshFailed) {
             // Éviter la boucle infinie pour les requêtes de refresh
             if (originalRequest.url?.includes('/auth/refresh')) {
                 console.log('❌ Refresh token échoué, arrêt de la boucle');
@@ -214,6 +240,16 @@ export const authService = {
         } catch (error) {
             console.error('❌ Erreur refresh token:', error);
             return false;
+        }
+    },
+
+    async getSessionInfo(): Promise<any> {
+        try {
+            const response = await axios.get(`${API_URL}/auth/session-info`, { withCredentials: true });
+            return response.data;
+        } catch (error) {
+            console.error('❌ Erreur récupération info session:', error);
+            return null;
         }
     }
 }; 

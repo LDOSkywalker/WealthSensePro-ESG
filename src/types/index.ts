@@ -15,6 +15,37 @@ export interface User {
   lastName?: string;
   disclaimerAccepted?: boolean;
   disclaimerAcceptedAt?: number;
+  role?: 'user' | 'advisor' | 'admin' | 'support';
+  sessionPolicy?: 'single' | 'two' | 'unlimited';
+}
+
+// Types pour la gestion des sessions Single-Active-Session
+export interface SessionInfo {
+  jti: string;
+  uid: string;
+  deviceId: string;
+  deviceLabel: string;
+  email: string;
+  status: 'active' | 'revoked' | 'rotated' | 'logged_out';
+  reason?: 'replaced' | 'reuse' | 'logout' | 'expired' | 'admin_revocation';
+  replacedBy?: string;
+  createdAt: number;
+  revokedAt?: number;
+  lastUsed: number;
+  tokenFamily: string;
+}
+
+export interface SessionRevokedError {
+  code: 'SESSION_REVOKED';
+  reason: 'replaced' | 'reuse' | 'logout' | 'expired' | 'admin_revocation';
+  replacedBy?: string;
+  revokedAt: number;
+}
+
+export interface SessionPolicy {
+  policy: 'single' | 'two' | 'unlimited';
+  description: string;
+  maxSessions: number;
 }
 
 export interface UserProfile {
