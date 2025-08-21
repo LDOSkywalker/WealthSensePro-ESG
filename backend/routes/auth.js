@@ -67,12 +67,18 @@ router.post('/login', loginLimiter, async (req, res) => {
         
         secureLogger.info('Utilisateur trouvé', { uid: userCredential.uid });
 
-        // 🔐 ÉTAPE 3 : Génération des tokens JWT avec gestion de session sécurisée
-        secureLogger.info('Génération des tokens JWT avec session sécurisée...');
+        // 🔐 ÉTAPE 3 : Récupération du rôle utilisateur
+        const db = admin.firestore();
+        const userDoc = await db.collection('users').doc(userCredential.uid).get();
+        const userRole = userDoc.exists ? userDoc.data().role || 'user' : 'user';
+        
+        // 🔐 ÉTAPE 4 : Génération des tokens JWT avec gestion de session sécurisée et révocation atomique
+        secureLogger.info('Génération des tokens JWT avec session sécurisée et révocation atomique...');
         const session = await sessionManager.createSession(
             userCredential.uid, 
             userCredential.email, 
-            req
+            req,
+            userRole
         );
         
         const { accessToken, refreshToken } = session;
@@ -230,11 +236,12 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
         secureLogger.info('Utilisateur créé avec succès', { uid: userRecord.uid });
 
-        // Générer les tokens avec gestion de session sécurisée
+        // Générer les tokens avec gestion de session sécurisée et révocation atomique
         const session = await sessionManager.createSession(
             userRecord.uid, 
             userRecord.email, 
-            req
+            req,
+            'user' // Nouveaux utilisateurs ont le rôle 'user' par défaut
         );
         
         const { accessToken, refreshToken } = session;
@@ -383,6 +390,54 @@ router.get('/profile', authMiddleware, async (req, res) => {
     } catch (error) {
         secureLogger.error('Erreur récupération profil', error);
         res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
+// Endpoint pour récupérer les informations de session (nécessaire pour le listener temps réel)
+router.get('/session-info', authMiddleware, async (req, res) => {
+    try {
+        // Récupérer le sessionId depuis le token décodé
+        const authHeader = req.headers.authorization;
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        if (!decoded.sessionId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Session ID manquant' 
+            });
+        }
+        
+        // Récupérer les informations de session
+        const sessionValidation = await sessionManager.validateSession(decoded.sessionId);
+        
+        if (!sessionValidation.valid) {
+            return res.status(401).json({
+                success: false,
+                code: sessionValidation.code,
+                error: 'Session invalide'
+            });
+        }
+        
+        // Retourner les informations de session (sans données sensibles)
+        res.json({
+            success: true,
+            session: {
+                jti: decoded.sessionId,
+                deviceId: sessionValidation.session.deviceId,
+                deviceLabel: sessionValidation.session.deviceLabel,
+                status: sessionValidation.session.status,
+                createdAt: sessionValidation.session.createdAt,
+                lastUsed: sessionValidation.session.lastUsed
+            }
+        });
+        
+    } catch (error) {
+        secureLogger.error('Erreur récupération infos session', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur' 
+        });
     }
 });
 

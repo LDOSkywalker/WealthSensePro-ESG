@@ -53,11 +53,25 @@ const authMiddleware = async (req, res, next) => {
                 if (!sessionValidation.valid) {
                     secureLogger.security('Session invalide détectée', {
                         sessionIdHash: decoded.sessionId,
+                        code: sessionValidation.code,
                         reason: sessionValidation.reason,
                         uidHash: decoded.uid
                     });
+                    
+                    // Codes d'erreur normalisés selon la spécification
+                    if (sessionValidation.code === 'SESSION_REVOKED') {
+                        return res.status(401).json({
+                            success: false,
+                            code: 'SESSION_REVOKED',
+                            reason: sessionValidation.reason || 'replaced',
+                            replacedBy: sessionValidation.replacedBy,
+                            revokedAt: sessionValidation.revokedAt
+                        });
+                    }
+                    
                     return res.status(401).json({
                         success: false,
+                        code: sessionValidation.code || 'SESSION_INVALID',
                         error: 'Session invalide'
                     });
                 }

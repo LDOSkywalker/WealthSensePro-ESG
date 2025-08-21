@@ -1150,4 +1150,246 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 
 ---
 
-*Dernière mise à jour : 19/08/2025 - Correction CRITIQUE de sécurité du middleware d'authentification + Système de logging sécurisé avec allowlist stricte et pseudonymisation intelligente des emails/UIDs* 
+## 🚀 **Phase 1 : Single-Active-Session avec Handoff Explicite - IMPLÉMENTÉE ✅**
+
+### 🎯 **Vue d'ensemble de la fonctionnalité**
+
+La fonctionnalité **Single-Active-Session avec Handoff Explicite** a été implémentée avec succès dans la **Phase 1**. Cette fonctionnalité garantit qu'un seul utilisateur peut être connecté simultanément par défaut, avec une révocation atomique des sessions existantes lors de nouvelles connexions.
+
+### 🔐 **Architecture de sécurité**
+
+#### **Policies de session configurables :**
+- **`single`** (défaut) : Une seule session active par compte
+- **`two`** : Deux sessions simultanées autorisées (pour les advisors)
+- **`unlimited`** : Sessions illimitées (pour les admins/support)
+
+#### **Révocation atomique :**
+- **Transaction Firestore** : Création de la nouvelle session ET révocation des autres en une seule opération atomique
+- **Aucune fenêtre d'accès résiduel** : Sécurité maximale garantie
+- **Gestion des courses** : Évite les conflits entre connexions simultanées
+
+### 📱 **Device Labeling intelligent**
+
+#### **Labels non-PII générés automatiquement :**
+- **Navigateurs** : Chrome, Firefox, Safari, Edge
+- **Systèmes d'exploitation** : Windows, Mac, iPhone, Android
+- **Fallback** : "Appareil" pour les cas non reconnus
+
+#### **Exemple de détection :**
+```javascript
+// User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+// → Device Label: "Windows"
+
+// User-Agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15"
+// → Device Label: "iPhone"
+```
+
+### 🛡️ **Codes d'erreur normalisés**
+
+#### **Réponses API standardisées :**
+```javascript
+// Session révoquée
+{
+  "success": false,
+  "code": "SESSION_REVOKED",
+  "reason": "replaced",
+  "replacedBy": "new_jti_hash",
+  "revokedAt": 1755785828553
+}
+
+// Session invalide
+{
+  "success": false,
+  "code": "SESSION_INVALID",
+  "error": "Session invalide"
+}
+
+// Session non trouvée
+{
+  "success": false,
+  "code": "SESSION_NOT_FOUND",
+  "error": "Session invalide"
+}
+```
+
+### 🔧 **Implémentation technique**
+
+#### **1. SessionManager étendu (`backend/utils/sessionManager.js`)**
+
+**Nouvelles méthodes :**
+- `generateDeviceLabel(req)` : Génération de labels d'appareil non-PII
+- `getSessionPolicy(uid, userRole)` : Récupération des policies par utilisateur
+- `createSession()` : Révocation atomique intégrée
+
+**Schéma de session étendu :**
+```javascript
+{
+  uid: "user_id",
+  deviceId: "hash_device",
+  deviceLabel: "Chrome",           // NOUVEAU
+  email: "user@example.com",
+  status: "active|revoked|rotated",
+  reason: "replaced|reuse|logout|expired|null",  // NOUVEAU
+  replacedBy: "jti_hash|null",    // NOUVEAU
+  createdAt: 1755785828553,
+  revokedAt: 1755785828553|null,  // NOUVEAU
+  lastUsed: 1755785828553,
+  tokenFamily: "device_hash"
+}
+```
+
+#### **2. Middleware d'authentification sécurisé (`backend/middleware/auth.js`)**
+
+**Gestion des codes d'erreur :**
+- Détection automatique des sessions révoquées
+- Réponses normalisées avec codes d'erreur
+- Logs sécurisés et pseudonymisés
+
+#### **3. Routes d'authentification étendues (`backend/routes/auth.js`)**
+
+**Nouveaux endpoints :**
+- `GET /api/auth/session-info` : Informations de session pour le frontend
+- Intégration des policies par rôle dans le processus de login
+
+#### **4. Routes d'administration (`backend/routes/admin.js`)**
+
+**Gestion des policies :**
+- `PUT /api/admin/users/:uid/policy` : Changer la policy d'un utilisateur
+- `GET /api/admin/users/:uid/policy` : Récupérer la policy actuelle
+- `POST /api/admin/sessions/revoke-user` : Révoquer toutes les sessions d'un utilisateur
+
+### 🧪 **Tests et validation**
+
+#### **Script de test complet (`backend/test-single-session.js`)**
+
+**Scénarios testés :**
+1. **Révocation atomique** : Création de session 2 → Révoque automatiquement session 1
+2. **Policy "two"** : Advisor peut avoir 2 sessions simultanées
+3. **Device labeling** : Détection automatique des navigateurs et OS
+4. **Codes d'erreur** : Validation des réponses SESSION_REVOKED
+
+#### **Exemple de test réussi :**
+```bash
+🧪 Test de la révocation atomique des sessions...
+
+📱 Test 1: Création de la première session...
+✅ Session 1 créée: { jti: '...', deviceId: '...', deviceLabel: 'Windows' }
+
+📱 Test 2: Création de la deuxième session (devrait révoquer la première)...
+✅ Session 2 créée: { jti: '...', deviceId: '...', deviceLabel: 'Mac' }
+
+🔍 Test 3: Vérification de la révocation de la session 1...
+Session 1 status: {
+  valid: false,
+  code: 'SESSION_REVOKED',
+  reason: 'replaced',
+  replacedBy: '...',
+  revokedAt: 1755785828553
+}
+
+🎉 Tests terminés avec succès !
+```
+
+### 🔒 **Sécurité et conformité**
+
+#### **Règles Firestore mises à jour :**
+```javascript
+// Règles pour la collection sessions
+match /sessions/{sessionId} {
+  // Lecture strictement limitée à l'utilisateur courant
+  allow read: if request.auth != null
+              && resource.data.uid == request.auth.uid;
+  
+  // Écriture réservée au backend uniquement
+  allow write: if false;
+}
+```
+
+#### **Avantages de sécurité :**
+- ✅ **Aucune fenêtre d'accès résiduel** : Sessions révoquées immédiatement
+- ✅ **Révocation atomique** : Pas de courses entre connexions
+- ✅ **Device labeling non-PII** : Aucune information personnelle exposée
+- ✅ **Policies configurables** : Flexibilité selon les rôles utilisateur
+- ✅ **Codes d'erreur normalisés** : Gestion cohérente côté frontend
+
+### 🚀 **Utilisation et configuration**
+
+#### **1. Configuration des policies par défaut :**
+```javascript
+// Dans sessionManager.js
+const defaultPolicies = {
+  'admin': 'unlimited',
+  'support': 'unlimited', 
+  'advisor': 'two',
+  'user': 'single'
+};
+```
+
+#### **2. Configuration personnalisée par utilisateur :**
+```bash
+# Via l'API admin
+PUT /api/admin/users/{uid}/policy
+{
+  "policy": "two"  // single, two, ou unlimited
+}
+```
+
+#### **3. Monitoring et observabilité :**
+```javascript
+// Logs automatiques de révocation
+secureLogger.info('Révocation atomique effectuée', null, {
+  uidHash: 'a1b2c3d4',
+  newJtiHash: 'e5f6g7h8',
+  revokedCount: 1,
+  policy: 'single'
+});
+```
+
+### 📊 **Métriques et monitoring**
+
+#### **Événements tracés :**
+- **Sessions créées** : Avec device label et policy appliquée
+- **Sessions révoquées** : Raison, timestamp, et session remplaçante
+- **Policies appliquées** : Suivi des changements de configuration
+- **Erreurs de sécurité** : Tentatives d'accès avec sessions révoquées
+
+#### **Logs structurés :**
+```javascript
+// Exemple de log de révocation
+{
+  "timestamp": "2025-08-21T14:17:08.496Z",
+  "environment": "development",
+  "operation": "session_revoked",
+  "uidHash": "a1b2c3d4",
+  "oldJtiHash": "e5f6g7h8",
+  "newJtiHash": "i9j0k1l2",
+  "reason": "replaced",
+  "policy": "single"
+}
+```
+
+### 🔮 **Évolutions futures (Phase 2)**
+
+#### **Frontend - Listener Temps Réel :**
+- **Listener Firestore** sur la session active
+- **Modale de déconnexion forcée** en temps réel
+- **Gestion des erreurs 401 SESSION_REVOKED**
+- **Hard logout automatique**
+
+#### **UX et notifications :**
+- **Modale explicative** : "Vous avez été déconnecté depuis un autre appareil"
+- **Options utilisateur** : Se reconnecter ou signaler une activité suspecte
+- **Device hints** : Affichage des informations d'appareil (non-PII)
+
+### 📋 **Checklist de déploiement**
+
+- [x] **Backend** : Révocation atomique implémentée et testée
+- [x] **Règles Firestore** : Mises à jour et déployées
+- [x] **Tests** : Script de validation complet et fonctionnel
+- [x] **Documentation** : README mis à jour avec la nouvelle fonctionnalité
+- [ ] **Frontend** : Listener temps réel et modale de déconnexion
+- [ ] **Production** : Déploiement et activation de la fonctionnalité
+
+---
+
+*Dernière mise à jour : 21/08/2025 - Phase 1 Single-Active-Session implémentée avec succès + Documentation complète + Tests validés* 

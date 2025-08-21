@@ -254,4 +254,78 @@ router.post('/sessions/revoke-user', async (req, res) => {
     }
 });
 
+/**
+ * PUT /api/admin/users/:uid/policy
+ * Change la policy de session d'un utilisateur
+ */
+router.put('/users/:uid/policy', async (req, res) => {
+    try {
+        const { uid } = req.params;
+        const { policy } = req.body;
+        
+        if (!policy || !['single', 'two', 'unlimited'].includes(policy)) {
+            return res.status(400).json({ 
+                error: 'Policy invalide. Doit être: single, two, ou unlimited' 
+            });
+        }
+
+        secureLogger.operation('admin_change_user_policy', {
+            adminUid: req.adminUser.uid,
+            targetUidHash: uid,
+            newPolicy: policy
+        });
+
+        const db = admin.firestore();
+        await db.collection('users').doc(uid).update({
+            sessionPolicy: policy,
+            updatedAt: Date.now()
+        });
+
+        res.json({
+            success: true,
+            uid,
+            newPolicy: policy,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        secureLogger.error('Erreur changement policy utilisateur', error);
+        res.status(500).json({ error: 'Erreur lors du changement de policy' });
+    }
+});
+
+/**
+ * GET /api/admin/users/:uid/policy
+ * Récupère la policy de session d'un utilisateur
+ */
+router.get('/users/:uid/policy', async (req, res) => {
+    try {
+        const { uid } = req.params;
+        
+        secureLogger.operation('admin_get_user_policy', {
+            adminUid: req.adminUser.uid,
+            targetUidHash: uid
+        });
+
+        const db = admin.firestore();
+        const userDoc = await db.collection('users').doc(uid).get();
+        
+        if (!userDoc.exists) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        const userData = userDoc.data();
+        const currentPolicy = userData.sessionPolicy || 'single';
+
+        res.json({
+            success: true,
+            uid,
+            currentPolicy,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        secureLogger.error('Erreur récupération policy utilisateur', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération de la policy' });
+    }
+});
+
 module.exports = router;
