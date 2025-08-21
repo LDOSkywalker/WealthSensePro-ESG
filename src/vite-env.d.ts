@@ -1,7 +1,9 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // Suppression des variables Firebase qui ne sont plus utilisées
+  // Variables d'environnement Vite
+  readonly VITE_API_BASE_URL?: string;
+  readonly VITE_APP_ENV?: string;
 }
 
 interface ImportMeta {

@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { SessionInfo } from '../types';
 
 interface SessionListenerProps {
-  onSessionRevoked: (sessionInfo: SessionInfo) => void;
-  onSessionUpdated: (sessionInfo: SessionInfo) => void;
+  onSessionRevoked: (session: SessionInfo) => void;
+  onSessionUpdated: (session: SessionInfo) => void;
 }
 
 export const SessionListener: React.FC<SessionListenerProps> = ({
@@ -12,104 +12,64 @@ export const SessionListener: React.FC<SessionListenerProps> = ({
   onSessionUpdated
 }) => {
   const { currentUser } = useAuth();
-  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!currentUser?.uid) {
       return;
     }
 
-    // Fonction pour configurer l'écoute Firestore
-    const setupFirestoreListener = async () => {
+    // Fonction pour vérifier le statut de la session via l'API backend
+    const checkSessionStatus = async () => {
       try {
-        // Import dynamique de Firebase pour éviter les erreurs de build
-        const { initializeApp } = await import('firebase/app');
-        const { getFirestore, collection, query, where, onSnapshot } = await import('firebase/firestore');
-        
-        // Configuration Firebase centralisée
-        const { firebaseConfig, validateFirebaseConfig } = await import('../config/firebase');
-        
-        // Vérifier la configuration
-        if (!validateFirebaseConfig()) {
-          console.error('❌ Configuration Firebase invalide');
-          return;
-        }
-
-        // Initialiser Firebase si pas déjà fait
-        let app;
-        try {
-          app = initializeApp(firebaseConfig);
-        } catch (error) {
-          // Firebase déjà initialisé
-          app = initializeApp(firebaseConfig, 'session-listener');
-        }
-
-        const db = getFirestore(app);
-
-        // Écouter les changements sur la collection sessions pour l'utilisateur courant
-        const sessionsRef = collection(db, 'sessions');
-        const sessionsQuery = query(
-          sessionsRef,
-          where('uid', '==', currentUser.uid)
-        );
-
-        console.log('🔍 Configuration de l\'écoute Firestore pour les sessions...');
-
-        const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            const sessionData = change.doc.data() as SessionInfo;
-            const sessionId = change.doc.id;
-
-            console.log('📱 Changement de session détecté:', {
-              type: change.type,
-              sessionId,
-              status: sessionData.status,
-              reason: sessionData.reason
-            });
-
-            if (change.type === 'modified') {
-              // Session mise à jour
-              onSessionUpdated({
-                ...sessionData,
-                jti: sessionId
-              });
-
-              // Vérifier si la session a été révoquée
-              if (sessionData.status === 'revoked') {
-                console.log('🚨 Session révoquée détectée:', sessionData);
-                onSessionRevoked({
-                  ...sessionData,
-                  jti: sessionId
-                });
-              }
-            } else if (change.type === 'removed') {
-              // Session supprimée (peut arriver lors du nettoyage)
-              console.log('🗑️ Session supprimée:', sessionId);
-            }
-          });
-        }, (error) => {
-          console.error('❌ Erreur lors de l\'écoute Firestore:', error);
+        const response = await fetch('/api/auth/session/status', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         });
 
-        // Stocker la fonction de désabonnement
-        unsubscribeRef.current = unsubscribe;
-
-        console.log('✅ Écoute Firestore configurée avec succès');
-
+        if (response.status === 401) {
+          // Session expirée ou révoquée
+          const errorData = await response.json();
+          if (errorData.code === 'SESSION_REVOKED') {
+            console.log('🚨 Session révoquée détectée via API');
+            onSessionRevoked({
+              uid: currentUser.uid,
+              status: 'revoked',
+              reason: 'revoked_by_admin',
+              deviceInfo: 'Unknown',
+              createdAt: new Date().toISOString(),
+              lastActivity: new Date().toISOString(),
+              jti: 'unknown'
+            });
+          }
+        } else if (response.ok) {
+          // Session valide, mettre à jour si nécessaire
+          const sessionData = await response.json();
+          if (sessionData.session) {
+            onSessionUpdated(sessionData.session);
+          }
+        }
       } catch (error) {
-        console.error('❌ Erreur lors de la configuration Firestore:', error);
+        console.error('❌ Erreur lors de la vérification de session:', error);
       }
     };
 
-    // Configurer l'écoute
-    setupFirestoreListener();
+    // Vérifier le statut de la session toutes les 30 secondes
+    intervalRef.current = setInterval(checkSessionStatus, 30000);
+
+    // Vérification immédiate
+    checkSessionStatus();
 
     // Cleanup lors du démontage
     return () => {
-      if (unsubscribeRef.current) {
-        console.log('🔇 Désabonnement de l\'écoute Firestore');
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
+      if (intervalRef.current) {
+        console.log('🔇 Arrêt de la vérification de session');
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [currentUser?.uid, onSessionRevoked, onSessionUpdated]);
