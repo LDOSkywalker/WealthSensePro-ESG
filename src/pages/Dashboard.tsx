@@ -189,6 +189,13 @@ const Dashboard: React.FC = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       
+      // Vérifier si c'est une erreur SESSION_REVOKED
+      if (error.response?.data?.code === 'SESSION_REVOKED') {
+        console.log('🚨 Session révoquée détectée dans Dashboard, pas d\'affichage du message d\'erreur');
+        // Ne pas afficher de message d'erreur, la mini-modale mobile s'affichera
+        return;
+      }
+      
       let errorMessage = "Désolé, une erreur s'est produite lors de la communication avec l'assistant.";
       
       if (error.response) {
