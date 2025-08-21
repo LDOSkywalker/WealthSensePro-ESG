@@ -86,12 +86,43 @@ axios.interceptors.response.use(
                 replacedBy: error.response.data.replacedBy
             });
             
+            // Détection de l'environnement mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            console.log('📱 Environnement détecté:', isMobile ? 'Mobile' : 'Desktop');
+            
             // Émettre un événement personnalisé pour la gestion côté composant
             const sessionRevokedEvent = new CustomEvent('sessionRevoked', {
                 detail: error.response.data
             });
-            window.dispatchEvent(sessionRevokedEvent);
-            console.log('📡 Événement sessionRevoked émis avec succès');
+            
+            // Émission avec fallback pour mobile
+            try {
+                window.dispatchEvent(sessionRevokedEvent);
+                console.log('📡 Événement sessionRevoked émis avec succès');
+                
+                // Fallback pour mobile : stockage local + notification
+                if (isMobile) {
+                    console.log('📱 Fallback mobile activé');
+                    localStorage.setItem('sessionRevoked', JSON.stringify(error.response.data));
+                    localStorage.setItem('sessionRevokedTimestamp', Date.now().toString());
+                    
+                    // Notification native si disponible
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('Session Révoquée', {
+                            body: 'Vous avez été déconnecté depuis un autre appareil',
+                            icon: '/favicon.svg'
+                        });
+                    }
+                }
+            } catch (eventError) {
+                console.error('❌ Erreur lors de l\'émission de l\'événement:', eventError);
+                
+                // Fallback en cas d'échec de l'événement
+                if (isMobile) {
+                    console.log('📱 Utilisation du fallback mobile');
+                    localStorage.setItem('sessionRevoked', JSON.stringify(error.response.data));
+                }
+            }
             
             // Ne pas essayer de rafraîchir le token si la session est révoquée
             return Promise.reject(error);
