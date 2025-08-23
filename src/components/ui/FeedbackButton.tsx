@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquarePlus, X, Send } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useConversation } from '../contexts/ConversationContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useConversation } from '../../contexts/ConversationContext';
 import axios from 'axios';
 
 interface FeedbackButtonProps {
