@@ -5,7 +5,7 @@ import Login from './pages/Login';
 import Landing from './pages/landing';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConversationProvider } from './contexts/ConversationContext';
-import ResetPassword from './components/ResetPassword';
+import { ResetPassword } from './components/auth';
 import { SessionListener, SessionExpiredBlock } from './components/sessions';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
