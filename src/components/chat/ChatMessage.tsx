@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Message, ResponseBlock, TableData, BarChartData, DonutChartData, MultipleChoiceData } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import Logo from './Logo';
+import { Message, ResponseBlock, TableData, BarChartData, DonutChartData, MultipleChoiceData } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import Logo from '../Logo';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import ChartControls from './ChartControls';
-import ChartItemSelector from './ChartItemSelector';
-import VideoPlayer from './VideoPlayer';
-import MultipleChoice from './MultipleChoice';
+import ChartControls from '../ChartControls';
+import ChartItemSelector from '../ChartItemSelector';
+import VideoPlayer from '../VideoPlayer';
+import MultipleChoice from '../MultipleChoice';
 import { AlertTriangle } from 'lucide-react';
-import PortfolioInput from './PortfolioInput';
-import PatrimoineInput from './Patrimoine/PatrimoineInput';
+import PortfolioInput from '../PortfolioInput';
+import PatrimoineInput from '../Patrimoine/PatrimoineInput';
 import {
   Chart as ChartJS,
   ArcElement,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, Plus, AlertTriangle, Edit2, Trash2, X, Check, ChevronDown } from 'lucide-react';
-import { useConversation } from '../contexts/ConversationContext';
-import { Conversation } from '../types';
+import { useConversation } from '../../contexts/ConversationContext';
+import { Conversation } from '../../types';
 
 interface ConversationHistoryProps {
   darkMode?: boolean;

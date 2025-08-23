@@ -1,6 +1,6 @@
 import React from 'react';
 import { Leaf, TrendingUp, Building2, PiggyBank } from 'lucide-react';
-import { StarterTopic } from '../types';
+import { StarterTopic } from '../../types';
 
 interface ConversationStarterProps {
   onStarterClick?: (message: string, topic: string) => void;
