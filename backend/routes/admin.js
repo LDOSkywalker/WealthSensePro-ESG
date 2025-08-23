@@ -8,25 +8,41 @@ const { secureLogger } = require('../utils/secureLogger');
 // Middleware d'authentification admin
 const adminAuthMiddleware = async (req, res, next) => {
     try {
+        console.log('🔍 [DEBUG ADMIN] Headers reçus:', req.headers);
+        console.log('🔍 [DEBUG ADMIN] URL demandée:', req.originalUrl);
+        console.log('🔍 [DEBUG ADMIN] Méthode:', req.method);
+        
         const authHeader = req.headers.authorization;
+        console.log('🔍 [DEBUG ADMIN] Header Authorization:', authHeader);
+        
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('🔍 [DEBUG ADMIN] Pas de token Bearer trouvé');
             return res.status(401).json({ error: 'Token d\'authentification requis' });
         }
 
         const token = authHeader.substring(7);
+        console.log('🔍 [DEBUG ADMIN] Token extrait (longueur):', token.length);
+        
         const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
+        console.log('🔍 [DEBUG ADMIN] Token décodé:', { uid: decoded.uid, exp: decoded.exp });
         
         // Vérifier que l'utilisateur est admin
         const user = await admin.auth().getUser(decoded.uid);
+        console.log('🔍 [DEBUG ADMIN] Utilisateur Firebase trouvé:', { uid: user.uid, email: user.email });
+        
         const userDoc = await admin.firestore().collection('users').doc(decoded.uid).get();
+        console.log('🔍 [DEBUG ADMIN] Document Firestore trouvé:', userDoc.exists);
         
         if (!userDoc.exists || userDoc.data().role !== 'admin') {
+            console.log('🔍 [DEBUG ADMIN] Rôle non admin:', userDoc.exists ? userDoc.data().role : 'document inexistant');
             return res.status(403).json({ error: 'Accès administrateur requis' });
         }
 
+        console.log('🔍 [DEBUG ADMIN] Authentification admin réussie pour:', user.email);
         req.adminUser = user;
         next();
     } catch (error) {
+        console.log('🔍 [DEBUG ADMIN] Erreur dans middleware:', error.message);
         secureLogger.error('Erreur authentification admin', error);
         res.status(401).json({ error: 'Token invalide' });
     }
@@ -299,12 +315,18 @@ router.put('/users/:uid/policy', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
     try {
+        console.log('🔍 [DEBUG ADMIN] Route /users appelée');
+        console.log('🔍 [DEBUG ADMIN] Utilisateur admin:', req.adminUser.email);
+        
         secureLogger.operation('admin_get_all_users', {
             adminUid: req.adminUser.uid
         });
 
         const db = admin.firestore();
+        console.log('🔍 [DEBUG ADMIN] Connexion Firestore établie');
+        
         const usersSnapshot = await db.collection('users').get();
+        console.log('🔍 [DEBUG ADMIN] Nombre d\'utilisateurs trouvés:', usersSnapshot.size);
         
         const users = [];
         usersSnapshot.forEach(doc => {
@@ -322,6 +344,9 @@ router.get('/users', async (req, res) => {
             });
         });
 
+        console.log('🔍 [DEBUG ADMIN] Utilisateurs formatés:', users.length);
+        console.log('🔍 [DEBUG ADMIN] Envoi de la réponse JSON');
+
         res.json({
             success: true,
             users,
@@ -329,6 +354,7 @@ router.get('/users', async (req, res) => {
             timestamp: new Date().toISOString()
         });
     } catch (error) {
+        console.log('🔍 [DEBUG ADMIN] Erreur dans la route /users:', error.message);
         secureLogger.error('Erreur récupération liste utilisateurs', error);
         res.status(500).json({ error: 'Erreur lors de la récupération des utilisateurs' });
     }

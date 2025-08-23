@@ -38,6 +38,10 @@ const UserManagement: React.FC = () => {
         ? 'https://wealthsensepro-esg.onrender.com/api'
         : import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
       
+      console.log('🔍 [DEBUG] URL de l\'API:', API_URL);
+      console.log('🔍 [DEBUG] URL complète:', `${API_URL}/admin/users`);
+      console.log('🔍 [DEBUG] Environnement PROD:', import.meta.env.PROD);
+      
       const adminResponse = await fetch(`${API_URL}/admin/users`, {
         credentials: 'include', // Inclure les cookies
         headers: {
@@ -45,11 +49,18 @@ const UserManagement: React.FC = () => {
         }
       });
 
+      console.log('🔍 [DEBUG] Status de la réponse:', adminResponse.status);
+      console.log('🔍 [DEBUG] Headers de la réponse:', Object.fromEntries(adminResponse.headers.entries()));
+      console.log('🔍 [DEBUG] URL de la réponse:', adminResponse.url);
+
       if (!adminResponse.ok) {
-        throw new Error('Erreur lors de la récupération des utilisateurs');
+        const errorText = await adminResponse.text();
+        console.log('🔍 [DEBUG] Contenu de l\'erreur:', errorText);
+        throw new Error(`Erreur ${adminResponse.status}: ${errorText}`);
       }
 
       const data = await adminResponse.json();
+      console.log('🔍 [DEBUG] Données reçues:', data);
       setUsers(data.users || []);
     } catch (err) {
       console.error('Erreur fetchUsers:', err);
