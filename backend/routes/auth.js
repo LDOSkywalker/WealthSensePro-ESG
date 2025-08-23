@@ -381,12 +381,23 @@ router.put('/password', authMiddleware, async (req, res) => {
 // Endpoint pour récupérer le profil utilisateur
 router.get('/profile', authMiddleware, async (req, res) => {
     try {
-        const db = admin.firestore();
-        const userDoc = await db.collection('users').doc(req.user.uid).get();
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: 'Utilisateur non trouvé' });
-        }
-        res.json(userDoc.data());
+        // Utiliser les données déjà récupérées par le middleware auth
+        // qui inclut maintenant le rôle et autres champs Firestore
+        const userProfile = {
+            uid: req.user.uid,
+            email: req.user.email,
+            displayName: req.user.displayName,
+            photoURL: req.user.photoURL,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            role: req.user.role,
+            isActive: req.user.isActive,
+            disclaimerAccepted: req.user.disclaimerAccepted,
+            disclaimerAcceptedAt: req.user.disclaimerAcceptedAt,
+            sessionPolicy: req.user.sessionPolicy
+        };
+        
+        res.json(userProfile);
     } catch (error) {
         secureLogger.error('Erreur récupération profil', error);
         res.status(500).json({ error: 'Erreur serveur' });

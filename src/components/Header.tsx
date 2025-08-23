@@ -94,6 +94,12 @@ const Header: React.FC<HeaderProps> = ({
             {darkMode ? <Sun className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />}
           </button>
           
+          {/* Debug temporaire - afficher le rôle */}
+          {currentUser && (
+            <div className="text-xs text-gray-500 mr-2">
+              Role: {currentUser.role || 'undefined'}
+            </div>
+          )}
           {/* Bouton Admin Dashboard - visible uniquement pour les admins */}
           {currentUser && currentUser.role === 'admin' && (
             <button 
