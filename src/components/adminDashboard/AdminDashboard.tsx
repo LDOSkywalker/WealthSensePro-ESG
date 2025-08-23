@@ -19,14 +19,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose }) => {
 
   // Vérifier si l'utilisateur est admin
   useEffect(() => {
-    console.log('🔍 AdminDashboard - currentUser:', currentUser);
-    console.log('🔍 AdminDashboard - currentUser.role:', currentUser?.role);
-    
     if (currentUser?.role === 'admin') {
-      console.log('✅ Utilisateur est admin, affichage du dashboard');
       setIsAdmin(true);
     } else {
-      console.log('❌ Utilisateur n\'est pas admin, fermeture du dashboard');
       setIsAdmin(false);
       onClose();
     }

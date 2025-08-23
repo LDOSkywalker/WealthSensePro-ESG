@@ -95,11 +95,6 @@ const Header: React.FC<HeaderProps> = ({
           </button>
           
           {/* Bouton Admin Dashboard - visible uniquement pour les admins */}
-          {currentUser && (
-            <div className="text-xs text-gray-500 mr-2">
-              Role: {currentUser.role || 'undefined'}
-            </div>
-          )}
           {currentUser && currentUser.role === 'admin' && (
             <button 
               onClick={() => setIsAdminDashboardOpen(true)}
