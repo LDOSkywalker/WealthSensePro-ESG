@@ -33,6 +33,17 @@ const UserManagement: React.FC = () => {
       setError(null);
       
       // Appel à l'API backend pour récupérer les utilisateurs
+      // Utiliser le service d'auth qui gère automatiquement les tokens JWT
+      console.log('🔍 [DEBUG] Vérification de l\'authentification...');
+      
+      // Vérifier d'abord que l'utilisateur est authentifié
+      const authCheck = await authService.checkAuth();
+      console.log('🔍 [DEBUG] Résultat checkAuth:', authCheck);
+      
+      if (!authCheck) {
+        throw new Error('Utilisateur non authentifié');
+      }
+      
       // Utiliser l'URL complète de l'API comme dans le service d'auth
       const API_URL = import.meta.env.PROD 
         ? 'https://wealthsensepro-esg.onrender.com/api'
@@ -42,9 +53,17 @@ const UserManagement: React.FC = () => {
       console.log('🔍 [DEBUG] URL complète:', `${API_URL}/admin/users`);
       console.log('🔍 [DEBUG] Environnement PROD:', import.meta.env.PROD);
       
+      // Récupérer le token depuis le service d'auth
+      const token = await authService.getAccessToken();
+      console.log('🔍 [DEBUG] Token récupéré (longueur):', token ? token.length : 'null');
+      
+      if (!token) {
+        throw new Error('Token d\'accès non disponible');
+      }
+      
       const adminResponse = await fetch(`${API_URL}/admin/users`, {
-        credentials: 'include', // Inclure les cookies
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });

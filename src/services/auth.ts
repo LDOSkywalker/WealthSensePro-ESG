@@ -241,5 +241,10 @@ export const authService = {
             console.error('❌ Erreur récupération info session:', error);
             return null;
         }
+    },
+
+    // Méthode pour récupérer le token d'accès actuel
+    async getAccessToken(): Promise<string | null> {
+        return accessToken;
     }
 }; 
