@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, User, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DisclaimerModal from './DisclaimerModal';
-import { authService } from '../services/auth';
-import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../../services/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AuthForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);

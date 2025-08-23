@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Lock, Eye, EyeOff, Check, X as XIcon } from 'lucide-react';
 import axios from 'axios';
-import { authService } from '../services/auth';
-import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../../services/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006';
 
