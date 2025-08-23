@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, MoreVertical, Shield, User, UserCheck, UserX } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
 
 interface User {
   uid: string;
@@ -32,19 +33,15 @@ const UserManagement: React.FC = () => {
       setError(null);
       
       // Appel à l'API backend pour récupérer les utilisateurs
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await axios.get('/api/admin/users', {
+        withCredentials: true
       });
 
-      if (!response.ok) {
+      if (response.data.success) {
+        setUsers(response.data.users || []);
+      } else {
         throw new Error('Erreur lors de la récupération des utilisateurs');
       }
-
-      const data = await response.json();
-      setUsers(data.users || []);
     } catch (err) {
       console.error('Erreur fetchUsers:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
