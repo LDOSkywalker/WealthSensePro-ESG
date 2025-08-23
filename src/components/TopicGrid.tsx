@@ -1,3 +1,7 @@
+// ⚠️ COMPOSANT NON UTILISÉ POUR L'INSTANT
+// Ce composant est prévu pour organiser la navigation par sujets de conversation
+// mais n'est pas encore intégré dans l'interface principale de l'application
+//
 import React from 'react';
 import TopicButton from './TopicButton';
 import { Topic } from '../types';

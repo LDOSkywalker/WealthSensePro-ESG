@@ -10,41 +10,128 @@ Le frontend de **WealthSensePro-ESG** est une application **React.js** moderne c
 
 ```
 src/components/
-├── AuthForm.tsx              # Formulaire d'authentification unifié
+├── auth/                     # 🔐 Composants d'authentification
+│   ├── index.ts             # 📦 Exports centralisés
+│   ├── AuthForm.tsx         # Formulaire d'authentification unifié
+│   ├── ResetPassword.tsx    # Réinitialisation de mot de passe
+│   ├── ProfileModal.tsx     # Modal de gestion du profil
+│   └── DisclaimerModal.tsx  # Modal d'acceptation des conditions
+├── chat/                     # 💬 Composants de conversation
+│   ├── index.ts             # 📦 Exports centralisés
+│   ├── ChatContainer.tsx    # Conteneur principal des conversations
+│   ├── ChatMessage.tsx      # Affichage des messages utilisateur/bot
+│   ├── ChatInput.tsx        # Saisie des messages utilisateur
+│   ├── ConversationHistory.tsx # Historique des conversations
+│   └── ConversationStarters.tsx # Sujets de démarrage de conversation
+├── chartsMedia/              # 📊🎬 Composants de graphiques et média
+│   ├── index.ts             # 📦 Exports centralisés
+│   ├── ChartControls.tsx    # Contrôles des graphiques
+│   ├── ChartItemSelector.tsx # Sélecteur d'éléments de graphique
+│   ├── VideoPlayer.tsx      # Lecteur vidéo intégré
+│   └── MultipleChoice.tsx   # Composant de choix multiples
+├── sessions/                 # 🔒 Gestion des sessions
+│   ├── index.ts             # 📦 Exports centralisés
+│   ├── SessionListener.tsx  # Écouteur des événements de session
+│   ├── SessionExpiredBlock.tsx # Bloc d'expiration de session
+│   ├── SessionRevokedModal.tsx # Modal de révocation de session
+│   └── SessionTest.tsx      # Composant de test des sessions
+├── ui/                       # 🎨 Composants d'interface réutilisables
+│   ├── index.ts             # 📦 Exports centralisés
+│   ├── LoadingDots.tsx      # Animation de chargement
+│   ├── Logo.tsx             # Composant logo de l'application
+│   ├── FeedbackButton.tsx   # Bouton de feedback
+│   ├── DeleteModal.tsx      # Modal de confirmation de suppression
+│   └── WelcomeModal.tsx     # Modal de bienvenue
+├── Patrimoine/               # 🏠 Module de gestion patrimoniale
+│   ├── PatrimoineInput.tsx  # Composant principal du patrimoine
+│   ├── types.ts             # Types TypeScript pour le patrimoine
+│   ├── SituationFamilialeForm.tsx
+│   ├── RevenusChargesForm.tsx
+│   ├── ImmobilierForm.tsx
+│   ├── FinancierForm.tsx
+│   ├── EndettementForm.tsx
+│   ├── ProfessionForm.tsx
+│   ├── ObjectifsForm.tsx
+│   ├── FiscaliteForm.tsx
+│   └── AutresInfosForm.tsx
 ├── Header.tsx                # En-tête avec navigation et profil
-├── ChatContainer.tsx         # Conteneur principal des conversations
-├── ChatMessage.tsx           # Affichage des messages utilisateur/bot
-├── ChatInput.tsx             # Saisie des messages utilisateur
-├── ConversationHistory.tsx   # Historique des conversations
-├── ConversationStarters.tsx  # Sujets de démarrage de conversation
-├── TopicGrid.tsx             # Grille des sujets de conversation
-├── TopicButton.tsx           # Bouton de sujet individuel
-├── ProfileModal.tsx          # Modal de gestion du profil
-├── ResetPassword.tsx         # Réinitialisation de mot de passe
-├── DisclaimerModal.tsx       # Modal d'acceptation des conditions
-├── WelcomeModal.tsx          # Modal de bienvenue
-├── DeleteModal.tsx           # Modal de confirmation de suppression
-├── FeedbackButton.tsx        # Bouton de feedback
-├── VideoPlayer.tsx           # Lecteur vidéo intégré
-├── LoadingDots.tsx           # Animation de chargement
-├── Logo.tsx                  # Composant logo de l'application
 ├── PortfolioInput.tsx        # Saisie des données de portefeuille
-├── MultipleChoice.tsx        # Composant de choix multiples
-├── ChartControls.tsx         # Contrôles des graphiques
-├── ChartItemSelector.tsx     # Sélecteur d'éléments de graphique
-└── Patrimoine/               # Module de gestion patrimoniale
-    ├── PatrimoineInput.tsx   # Composant principal du patrimoine
-    ├── types.ts              # Types TypeScript pour le patrimoine
-    ├── SituationFamilialeForm.tsx
-    ├── RevenusChargesForm.tsx
-    ├── ImmobilierForm.tsx
-    ├── FinancierForm.tsx
-    ├── EndettementForm.tsx
-    ├── ProfessionForm.tsx
-    ├── ObjectifsForm.tsx
-    ├── FiscaliteForm.tsx
-    └── AutresInfosForm.tsx
+├── TopicGrid.tsx             # ⚠️ Grille des sujets (non utilisée pour l'instant)
+└── TopicButton.tsx           # ⚠️ Bouton de sujet (non utilisé pour l'instant)
 ```
+
+### 🗂️ Organisation des composants
+
+L'architecture des composants a été réorganisée pour améliorer la maintenabilité et la lisibilité du code. Chaque dossier contient un fichier `index.ts` qui centralise les exports.
+
+#### **Structure des dossiers spécialisés**
+
+**`auth/`** - Composants d'authentification
+- Gestion centralisée des formulaires d'authentification
+- Modals de profil et de conditions
+- Exports centralisés via `index.ts`
+
+**`chat/`** - Composants de conversation
+- Interface de chat IA complète
+- Gestion des messages et réponses
+- Historique et sujets de démarrage
+
+**`chartsMedia/`** - Composants de visualisation
+- Graphiques et contrôles de données
+- Lecteur vidéo et composants interactifs
+- Exports centralisés pour une utilisation simplifiée
+
+**`sessions/`** - Gestion des sessions
+- Écouteurs d'événements de session
+- Gestion des expirations et révocations
+- Composants de test et de débogage
+
+**`ui/`** - Composants d'interface réutilisables
+- Composants génériques et réutilisables
+- Animations, logos, modals
+- Design system cohérent
+
+**`Patrimoine/`** - Module patrimonial
+- Gestion complète des données patrimoniales
+- Formulaires spécialisés par domaine
+- Types TypeScript dédiés
+
+#### **Composants isolés**
+- **`Header.tsx`** : En-tête principal de l'application
+- **`PortfolioInput.tsx`** : Gestion des portefeuilles financiers
+- **`TopicGrid.tsx`** et **`TopicButton.tsx`** : Composants de navigation par sujets (⚠️ non utilisés pour l'instant)
+
+#### **Avantages de cette organisation**
+
+✅ **Maintenabilité améliorée** : Composants regroupés par fonctionnalité  
+✅ **Imports simplifiés** : Utilisation des exports centralisés via `index.ts`  
+✅ **Découverte facilitée** : Structure claire et logique  
+✅ **Réutilisabilité** : Composants UI facilement accessibles  
+✅ **Évolutivité** : Ajout de nouveaux composants organisés  
+✅ **Cohérence** : Standards d'organisation uniformes  
+✅ **Debugging** : Localisation rapide des composants  
+✅ **Collaboration** : Structure compréhensible pour l'équipe
+
+#### **Patterns d'import utilisés**
+
+```typescript
+// ✅ Import centralisé (recommandé)
+import { AuthForm, ResetPassword } from '../components/auth';
+import { ChatContainer, ChatMessage } from '../components/chat';
+import { ChartControls, VideoPlayer } from '../components/chartsMedia';
+import { SessionListener, SessionExpiredBlock } from '../components/sessions';
+import { LoadingDots, Logo } from '../components/ui';
+
+// ❌ Import direct (à éviter)
+import AuthForm from '../components/auth/AuthForm';
+import ChatContainer from '../components/chat/ChatContainer';
+```
+
+**Avantages des imports centralisés :**
+- **Un seul point de modification** pour les exports
+- **Gestion des exports par défaut** vs exports nommés
+- **Refactoring simplifié** lors des déplacements
+- **Cohérence** dans l'utilisation des composants
 
 ### Composants clés détaillés
 
@@ -933,4 +1020,4 @@ npm-check-updates -u
 
 ---
 
-*Dernière mise à jour : 21/08/2025 - Documentation complète du frontend WealthSensePro-ESG avec architecture détaillée, composants, sécurité et déploiement*
+*Dernière mise à jour : 21/08/2025 - Documentation complète du frontend WealthSensePro-ESG avec architecture détaillée, composants réorganisés, sécurité et déploiement*
