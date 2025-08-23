@@ -3,10 +3,7 @@ import { Message, ResponseBlock, TableData, BarChartData, DonutChartData, Multip
 import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../ui/Logo';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import ChartControls from '../ChartControls';
-import ChartItemSelector from '../ChartItemSelector';
-import VideoPlayer from '../VideoPlayer';
-import MultipleChoice from '../MultipleChoice';
+import { ChartControls, ChartItemSelector, VideoPlayer, MultipleChoice } from '../chartsMedia';
 import { AlertTriangle } from 'lucide-react';
 import PortfolioInput from '../PortfolioInput';
 import PatrimoineInput from '../Patrimoine/PatrimoineInput';
