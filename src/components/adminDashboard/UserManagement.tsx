@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, MoreVertical, Shield, User, UserCheck, UserX } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import { authService } from '../../services/auth';
 
 interface User {
   uid: string;
@@ -33,15 +33,24 @@ const UserManagement: React.FC = () => {
       setError(null);
       
       // Appel à l'API backend pour récupérer les utilisateurs
-      const response = await axios.get('/api/admin/users', {
-        withCredentials: true
+      // Utiliser l'URL complète de l'API comme dans le service d'auth
+      const API_URL = import.meta.env.PROD 
+        ? 'https://wealthsensepro-esg.onrender.com/api'
+        : import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
+      
+      const adminResponse = await fetch(`${API_URL}/admin/users`, {
+        credentials: 'include', // Inclure les cookies
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (response.data.success) {
-        setUsers(response.data.users || []);
-      } else {
+      if (!adminResponse.ok) {
         throw new Error('Erreur lors de la récupération des utilisateurs');
       }
+
+      const data = await adminResponse.json();
+      setUsers(data.users || []);
     } catch (err) {
       console.error('Erreur fetchUsers:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
