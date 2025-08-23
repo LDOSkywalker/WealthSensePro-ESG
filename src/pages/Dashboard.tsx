@@ -4,10 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useConversation } from '../contexts/ConversationContext';
 import { ConversationHistory, ChatMessage } from '../components/chat';
 import axios from 'axios';
-import LoadingDots from '../components/LoadingDots';
+import { LoadingDots, DeleteModal } from '../components/ui';
 import { Message, IAModel, IA_MODELS, Conversation } from '../types';
 import { Send, AlertTriangle, Plus, HelpCircle, Package, Scale, Menu, Sparkles } from 'lucide-react';
-import DeleteModal from '../components/DeleteModal';
 
 const capitalizeFirstLetter = (string: string): string => {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();

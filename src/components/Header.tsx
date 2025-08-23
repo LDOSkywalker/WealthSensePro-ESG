@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LogOut, Moon, Sun, Menu } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileModal from './ProfileModal';
-import Logo from './Logo';
+import { Logo } from './ui';
 
 interface HeaderProps {
   darkMode: boolean;
