@@ -18,6 +18,11 @@ backend/
 │   ├── admin.js               # Routes d'administration
 │   ├── conversations.js       # Gestion des conversations
 │   └── messages.js            # Gestion des messages
+├── scripts/
+│   ├── create-admin.js        # Script de création du premier admin
+│   ├── test-admin.js          # Script de test de l'admin
+│   ├── cleanup-admin-script.js # Script de nettoyage
+│   └── README.md              # Documentation des scripts
 ├── utils/
 │   ├── sessionManager.js      # Gestion des sessions sécurisées
 │   ├── sessionCleanup.js      # Nettoyage automatique
@@ -78,6 +83,35 @@ npm start
 
 # Le serveur démarre sur le port 3006 par défaut
 ```
+
+## 🔐 Système d'authentification et Gestion des Rôles
+
+### Gestion des Rôles Utilisateurs
+
+L'application supporte un système de rôles hiérarchique :
+
+- **`user`** : Utilisateur standard (rôle par défaut)
+- **`advisor`** : Conseiller financier (accès étendu)
+- **`support`** : Équipe de support (accès limité)
+- **`admin`** : Administrateur système (accès complet)
+
+### Création du Premier Administrateur
+
+**⚠️ IMPORTANT :** Le premier administrateur doit être créé via un script sécurisé.
+
+```bash
+# Depuis le dossier backend/
+node scripts/create-admin.js --email=admin@wealthsense.com --role=admin
+```
+
+**Sécurité :**
+- Le script ne peut être exécuté qu'une seule fois
+- Une fois qu'un admin existe, utilisez l'interface admin
+- Toutes les opérations sont loggées et traçables
+
+**⚠️ ATTENTION SÉCURITÉ :** Le script vérifie uniquement la présence d'admins dans Firestore. En cas de suppression manuelle d'un admin, le script pourrait être réutilisé. **Ne jamais supprimer manuellement un administrateur depuis Firestore.**
+
+**Documentation complète :** Voir `scripts/README.md`
 
 ## 🔐 Système d'authentification
 

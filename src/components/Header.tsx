@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { LogOut, Moon, Sun, Menu } from 'lucide-react';
+import { LogOut, Moon, Sun, Menu, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileModal } from './auth';
 import { Logo } from './ui';
+import AdminDashboard from './adminDashboard/AdminDashboard';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -21,6 +22,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { currentUser, logout } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -92,6 +94,21 @@ const Header: React.FC<HeaderProps> = ({
             {darkMode ? <Sun className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />}
           </button>
           
+          {/* Bouton Admin Dashboard - visible uniquement pour les admins */}
+          {currentUser && currentUser.role === 'admin' && (
+            <button 
+              onClick={() => setIsAdminDashboardOpen(true)}
+              className={`p-1.5 sm:p-2 rounded-full transition-colors ${
+                darkMode 
+                  ? 'text-purple-300 hover:bg-gray-700 hover:text-purple-200' 
+                  : 'text-purple-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+              title="Dashboard Administrateur"
+            >
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+          )}
+          
           {currentUser && (
             <button 
               onClick={handleLogout}
@@ -118,6 +135,12 @@ const Header: React.FC<HeaderProps> = ({
         isOpen={isProfileModalOpen} 
         onClose={closeProfileModal} 
         darkMode={darkMode}
+      />
+      
+      {/* Admin Dashboard Modal */}
+      <AdminDashboard 
+        isOpen={isAdminDashboardOpen} 
+        onClose={() => setIsAdminDashboardOpen(false)} 
       />
     </>
   );
