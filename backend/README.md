@@ -113,6 +113,129 @@ node scripts/create-admin.js --email=admin@wealthsense.com --role=admin
 
 **Documentation complète :** Voir `scripts/README.md`
 
+## 🛡️ Dashboard Administrateur
+
+### Vue d'ensemble
+
+Le **Dashboard Administrateur** est une interface sécurisée accessible uniquement aux utilisateurs ayant le rôle `admin`. Il fournit des outils de gestion complète pour l'administration de la plateforme.
+
+### Routes d'administration
+
+#### **Protection des routes admin**
+
+Toutes les routes d'administration sont protégées par le middleware `adminAuthMiddleware` qui :
+
+- **Vérifie la présence** du header `Authorization: Bearer <token>`
+- **Valide le JWT token** avec la clé secrète
+- **Vérifie le rôle admin** dans Firestore
+- **Log toutes les actions** de manière sécurisée
+
+```javascript
+// Exemple de protection
+router.use(adminAuthMiddleware); // Appliqué à toutes les routes admin
+```
+
+#### **Route `/api/admin/users`**
+
+**Méthode :** `GET`  
+**Protection :** `adminAuthMiddleware`  
+**Fonctionnalité :** Récupération de la liste complète des utilisateurs
+
+**Réponse :**
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "uid": "string",
+      "email": "string",
+      "firstName": "string",
+      "lastName": "string",
+      "role": "admin|support|advisor|user",
+      "isActive": boolean,
+      "createdAt": number,
+      "lastLogin": number,
+      "sessionPolicy": "string"
+    }
+  ],
+  "count": number,
+  "timestamp": "ISO string"
+}
+```
+
+**Sécurité :**
+- Seuls les utilisateurs avec le rôle `admin` peuvent accéder
+- Toutes les requêtes sont loggées avec `secureLogger`
+- Les données sensibles sont pseudonymisées dans les logs
+
+### Middleware d'authentification admin
+
+#### **adminAuthMiddleware**
+
+```javascript
+const adminAuthMiddleware = async (req, res, next) => {
+    try {
+        // 1. Vérification du header Authorization
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Token d\'authentification requis' });
+        }
+
+        // 2. Extraction et validation du JWT
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // 3. Vérification Firebase Auth
+        const user = await admin.auth().getUser(decoded.uid);
+
+        // 4. Vérification du rôle admin dans Firestore
+        const userDoc = await admin.firestore().collection('users').doc(decoded.uid).get();
+        if (!userDoc.exists || userDoc.data().role !== 'admin') {
+            return res.status(403).json({ error: 'Accès administrateur requis' });
+        }
+
+        // 5. Ajout de l'utilisateur admin à req.adminUser
+        req.adminUser = user;
+        next();
+    } catch (error) {
+        secureLogger.error('Erreur authentification admin', error);
+        res.status(401).json({ error: 'Token invalide' });
+    }
+};
+```
+
+### Logs et traçabilité
+
+#### **Logs sécurisés**
+
+Toutes les actions d'administration sont tracées via `secureLogger` :
+
+```javascript
+// Log des opérations admin
+secureLogger.operation('admin_get_all_users', {
+    adminUid: req.adminUser.uid
+});
+
+// Log des erreurs
+secureLogger.error('Erreur récupération liste utilisateurs', error);
+```
+
+#### **Logs de débogage**
+
+Des logs de débogage sont ajoutés pour faciliter le diagnostic :
+
+```javascript
+console.log('🔍 [DEBUG ADMIN] Headers reçus:', req.headers);
+console.log('🔍 [DEBUG ADMIN] Token décodé:', { uid: decoded.uid, exp: decoded.exp });
+console.log('🔍 [DEBUG ADMIN] Authentification admin réussie pour:', user.email);
+```
+
+### Fonctionnalités à venir
+
+- **Gestion des sessions** : Monitoring et révocation des sessions actives
+- **Analytics système** : Métriques de performance et d'utilisation
+- **Configuration système** : Paramètres globaux et permissions
+
 ## 🔐 Système d'authentification
 
 ### Architecture d'authentification
@@ -483,6 +606,12 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 - Protection CSRF
 - Headers de sécurité automatiques
 
+### ✅ **Dashboard Administrateur**
+- Interface sécurisée pour la gestion des utilisateurs
+- Middleware d'authentification admin avec vérification JWT
+- Routes protégées avec `adminAuthMiddleware`
+- Logs sécurisés et traçabilité complète des actions
+
 ---
 
-**📅 Dernière mise à jour : 21/08/2025 - Architecture complète et sécurisée** 
+**📅 Dernière mise à jour : 21/08/2025 - Architecture complète et sécurisée avec dashboard administrateur** 

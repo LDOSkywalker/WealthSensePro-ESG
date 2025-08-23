@@ -57,6 +57,53 @@ Frontend (React) ←→ Backend (Node.js) ←→ Firebase (Auth + Firestore)
 - **Netlify** - Déploiement frontend
 - **Render** - Déploiement backend
 
+## 🛡️ Dashboard Administrateur
+
+### Vue d'ensemble
+
+Le **Dashboard Administrateur** est une interface sécurisée réservée aux utilisateurs ayant le rôle `admin`. Il fournit des outils de gestion complète pour l'administration de la plateforme WealthSensePro-ESG.
+
+### Fonctionnalités principales
+
+#### **Gestion des utilisateurs** ✅
+- **Liste complète** : Affichage de tous les utilisateurs (5 utilisateurs accessibles)
+- **Filtrage avancé** : Par rôle (admin, support, advisor, user) et statut
+- **Recherche** : Par email, nom ou prénom
+- **Informations détaillées** : UID, email, nom, rôle, statut, dates de création et connexion
+
+#### **Sécurité renforcée**
+- **Authentification JWT** : Token Bearer requis pour toutes les actions
+- **Middleware admin** : Vérification du rôle admin côté backend
+- **Logs sécurisés** : Toutes les actions sont tracées et pseudonymisées
+- **Règles Firestore** : Accès restreint aux collections sensibles
+
+#### **Interface intuitive**
+- **Navigation par onglets** : Gestion des utilisateurs, sessions, analytics, configuration
+- **Design responsive** : Adaptation automatique selon l'écran
+- **Gestion des états** : Loading, erreurs, et données dynamiques
+
+### Architecture technique
+
+#### **Frontend**
+```typescript
+// Composant principal : AdminDashboard.tsx
+// Gestion des utilisateurs : UserManagement.tsx
+// Service d'authentification : authService avec JWT Bearer
+```
+
+#### **Backend**
+```javascript
+// Route protégée : GET /api/admin/users
+// Middleware : adminAuthMiddleware
+// Logs : secureLogger avec pseudonymisation
+```
+
+### Fonctionnalités à venir
+
+- **Onglet Sessions** : Gestion des sessions actives et révocation
+- **Onglet Analytics** : Statistiques d'utilisation et métriques
+- **Onglet Configuration** : Paramètres système et permissions
+
 ## 🔐 Système d'authentification hybride sécurisé
 
 ### Architecture de sécurité
@@ -285,6 +332,11 @@ npm test             # Exécution des tests
 - ✅ Système de sessions sécurisées
 
 ### Phase 2 : Fonctionnalités avancées (En cours) 🔄
+- ✅ **Dashboard Administrateur** : Interface de gestion complète pour les administrateurs
+  - Gestion des utilisateurs avec filtrage et recherche
+  - Interface sécurisée avec authentification JWT Bearer
+  - Logs de débogage et traçabilité des actions
+  - Respect total de l'architecture de sécurité existante
 - 🔄 Intégration IA avancée ESG
 - 🔄 Analytics et reporting patrimonial
 - 🔄 Notifications push
@@ -334,7 +386,7 @@ L'architecture modulaire et sécurisée permet une évolution continue et l'ajou
 
 ---
 
-**📅 Dernière mise à jour : 21/08/2025 - Vue d'ensemble complète de l'application**
+**📅 Dernière mise à jour : 21/08/2025 - Vue d'ensemble complète de l'application avec dashboard administrateur**
 
 **✅ Statut actuel :** MVP terminé avec système de sécurité avancé  
 **🔄 Phase en cours :** Fonctionnalités avancées et optimisations  

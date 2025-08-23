@@ -931,6 +931,145 @@ VITE_FIREBASE_PROJECT_ID=wealthsense-prod
 - **Lighthouse** : Audit de performance
 - **WebPageTest** : Tests de performance
 
+## 🛡️ Dashboard Administrateur
+
+### Vue d'ensemble
+
+Le **Dashboard Administrateur** est une interface sécurisée réservée aux utilisateurs ayant le rôle `admin`. Il fournit des outils de gestion complète pour l'administration de la plateforme WealthSensePro-ESG.
+
+### Architecture de sécurité
+
+#### **Protection des routes admin**
+- **Middleware `adminAuthMiddleware`** : Vérification du rôle admin côté backend
+- **Vérification JWT** : Token d'accès requis dans le header `Authorization: Bearer <token>`
+- **Règles Firestore** : Accès restreint aux collections sensibles
+- **Logs sécurisés** : Toutes les actions admin sont tracées et pseudonymisées
+
+#### **Authentification admin**
+```typescript
+// Vérification du rôle admin
+const userDoc = await admin.firestore().collection('users').doc(decoded.uid).get();
+if (!userDoc.exists || userDoc.data().role !== 'admin') {
+    return res.status(403).json({ error: 'Accès administrateur requis' });
+}
+```
+
+### Composants du dashboard
+
+#### **1. AdminDashboard.tsx** - Composant principal
+- **Condition d'affichage** : Visible uniquement pour les utilisateurs admin
+- **Navigation par onglets** : Gestion des utilisateurs, sessions, analytics, configuration
+- **Gestion des états** : Loading, erreurs, et données dynamiques
+
+#### **2. UserManagement.tsx** - Gestion des utilisateurs
+- **Fonctionnalités** :
+  - Liste complète des utilisateurs (5 utilisateurs accessibles)
+  - Filtrage par rôle (admin, support, advisor, user)
+  - Recherche par email ou nom
+  - Affichage des informations : UID, email, nom, rôle, statut, dates
+- **Sécurité** :
+  - Utilisation du service d'auth existant (`authService`)
+  - Récupération du JWT token en mémoire
+  - Envoi sécurisé via header `Authorization: Bearer <token>`
+  - Logs de débogage pour le diagnostic
+
+#### **3. Authentification sécurisée**
+```typescript
+// Vérification de l'authentification
+const authCheck = await authService.checkAuth();
+if (!authCheck) {
+    throw new Error('Utilisateur non authentifié');
+}
+
+// Récupération du token JWT
+const token = await authService.getAccessToken();
+if (!token) {
+    throw new Error('Token d\'accès non disponible');
+}
+
+// Requête sécurisée avec token Bearer
+const adminResponse = await fetch(`${API_URL}/admin/users`, {
+    headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    }
+});
+```
+
+### API Backend
+
+#### **Route `/api/admin/users`**
+- **Méthode** : `GET`
+- **Protection** : `adminAuthMiddleware`
+- **Données retournées** :
+  ```json
+  {
+    "success": true,
+    "users": [
+      {
+        "uid": "string",
+        "email": "string",
+        "firstName": "string",
+        "lastName": "string",
+        "role": "admin|support|advisor|user",
+        "isActive": boolean,
+        "createdAt": number,
+        "lastLogin": number,
+        "sessionPolicy": "string"
+      }
+    ],
+    "count": number,
+    "timestamp": "ISO string"
+  }
+  ```
+
+### Logs et débogage
+
+#### **Frontend** - Logs de diagnostic
+```typescript
+console.log('🔍 [DEBUG] Vérification de l\'authentification...');
+console.log('🔍 [DEBUG] Résultat checkAuth:', authCheck);
+console.log('🔍 [DEBUG] URL de l\'API:', API_URL);
+console.log('🔍 [DEBUG] Token récupéré (longueur):', token?.length);
+console.log('🔍 [DEBUG] Données reçues:', data);
+```
+
+#### **Backend** - Logs sécurisés
+```javascript
+// Middleware admin
+console.log('🔍 [DEBUG ADMIN] Headers reçus:', req.headers);
+console.log('🔍 [DEBUG ADMIN] Token décodé:', { uid: decoded.uid, exp: decoded.exp });
+console.log('🔍 [DEBUG ADMIN] Authentification admin réussie pour:', user.email);
+
+// Route admin
+secureLogger.operation('admin_get_all_users', { adminUid: req.adminUser.uid });
+```
+
+### Fonctionnalités à venir
+
+#### **Onglet Sessions** (En développement)
+- Gestion des sessions actives
+- Révocation de sessions
+- Monitoring des connexions
+
+#### **Onglet Analytics** (En développement)
+- Statistiques d'utilisation
+- Métriques de performance
+- Rapports d'activité
+
+#### **Onglet Configuration** (En développement)
+- Paramètres système
+- Configuration des rôles
+- Gestion des permissions
+
+### Respect de l'architecture existante
+
+✅ **Aucune modification** des règles de sécurité Firestore  
+✅ **Aucune modification** des middlewares de sécurité  
+✅ **Aucune modification** du système de sessions  
+✅ **Utilisation exclusive** des services d'auth existants  
+✅ **Respect total** de l'architecture de sécurité  
+
 ## 🔧 Maintenance et évolution
 
 ### Gestion des dépendances
@@ -1020,4 +1159,4 @@ npm-check-updates -u
 
 ---
 
-*Dernière mise à jour : 21/08/2025 - Documentation complète du frontend WealthSensePro-ESG avec architecture détaillée, composants réorganisés, sécurité et déploiement*
+*Dernière mise à jour : 21/08/2025 - Documentation complète du frontend WealthSensePro-ESG avec architecture détaillée, composants réorganisés, sécurité, déploiement et dashboard administrateur*
