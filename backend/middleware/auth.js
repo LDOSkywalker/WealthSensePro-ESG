@@ -105,15 +105,32 @@ const authMiddleware = async (req, res, next) => {
                 uidHash: decoded.uid 
             });
             const user = await admin.auth().getUser(decoded.uid);
+            
+            // Récupération des données Firestore (rôle, etc.)
+            const db = admin.firestore();
+            const userDoc = await db.collection('users').doc(decoded.uid).get();
+            const userData = userDoc.exists ? userDoc.data() : {};
+            
             req.user = {
                 uid: user.uid,
-                email: user.email
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                // Données Firestore
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                role: userData.role || 'user',
+                isActive: userData.isActive,
+                disclaimerAccepted: userData.disclaimerAccepted,
+                disclaimerAcceptedAt: userData.disclaimerAcceptedAt,
+                sessionPolicy: userData.sessionPolicy
             };
             
             // Log de succès Firebase (avec pseudonymisation)
             secureLogger.info('Utilisateur Firebase vérifié avec succès', null, {
                 uidHash: user.uid,
-                emailHash: user.email
+                emailHash: user.email,
+                role: userData.role || 'user'
             });
             
             next();
