@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import { Message, Topic, IAModel, IA_MODELS } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import { useConversation } from '../contexts/ConversationContext';
+import { Message, Topic, IAModel, IA_MODELS } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { useConversation } from '../../contexts/ConversationContext';
 import { AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
