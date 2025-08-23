@@ -14,7 +14,11 @@ interface User {
   lastLogin?: number;
 }
 
-const UserManagement: React.FC = () => {
+interface UserManagementProps {
+  darkMode?: boolean;
+}
+
+const UserManagement: React.FC<UserManagementProps> = ({ darkMode = false }) => {
   const { currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,7 +198,7 @@ const UserManagement: React.FC = () => {
     return (
       <div className="p-6 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-        <span className="ml-3 text-gray-600">Chargement des utilisateurs...</span>
+        <span className={`ml-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Chargement des utilisateurs...</span>
       </div>
     );
   }
@@ -204,8 +208,8 @@ const UserManagement: React.FC = () => {
       <div className="p-6 text-center">
         <div className="text-red-600 mb-4">
           <UserX className="w-16 h-16 mx-auto mb-2" />
-          <p className="text-lg font-medium">Erreur de chargement</p>
-          <p className="text-sm text-gray-600">{error}</p>
+          <p className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>Erreur de chargement</p>
+          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{error}</p>
         </div>
         <button
           onClick={fetchUsers}
@@ -221,8 +225,8 @@ const UserManagement: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Gestion des Utilisateurs</h2>
-        <p className="text-gray-600">
+        <h2 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Gestion des Utilisateurs</h2>
+        <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
           {filteredUsers.length} utilisateur{filteredUsers.length > 1 ? 's' : ''} trouvé{filteredUsers.length > 1 ? 's' : ''}
         </p>
       </div>
@@ -230,22 +234,30 @@ const UserManagement: React.FC = () => {
       {/* Filtres et recherche */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
           <input
             type="text"
             placeholder="Rechercher par email ou nom..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+              darkMode 
+                ? 'bg-dark border-gray-600 text-white placeholder-gray-400' 
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            }`}
           />
         </div>
         
         <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-gray-400" />
+          <Filter className={`w-4 h-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+              darkMode 
+                ? 'bg-dark border-gray-600 text-white' 
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
           >
             <option value="all">Tous les rôles</option>
             <option value="admin">Administrateurs</option>
@@ -257,34 +269,46 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Table des utilisateurs */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className={`rounded-lg border overflow-hidden ${darkMode ? 'bg-dark-card border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className={darkMode ? 'bg-dark-lighter' : 'bg-gray-50'}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                   Utilisateur
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                   Rôle
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                   Statut
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                   Créé le
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                   Dernière connexion
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className={`divide-y ${darkMode ? 'divide-gray-700 bg-dark-card' : 'divide-gray-200 bg-white'}`}>
               {filteredUsers.map((user) => (
-                <tr key={user.uid} className="hover:bg-gray-50">
+                <tr key={user.uid} className={darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -295,13 +319,13 @@ const UserManagement: React.FC = () => {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                           {user.firstName && user.lastName 
                             ? `${user.firstName} ${user.lastName}`
                             : 'Nom non renseigné'
                           }
                         </div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</div>
                       </div>
                     </div>
                   </td>
@@ -325,11 +349,11 @@ const UserManagement: React.FC = () => {
                     </span>
                   </td>
                   
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {user.createdAt ? formatDate(user.createdAt) : 'N/A'}
                   </td>
                   
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {user.lastLogin ? formatDate(user.lastLogin) : 'Jamais'}
                   </td>
                   
@@ -348,9 +372,9 @@ const UserManagement: React.FC = () => {
       {/* Message si aucun utilisateur trouvé */}
       {filteredUsers.length === 0 && (
         <div className="text-center py-12">
-          <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun utilisateur trouvé</h3>
-          <p className="text-gray-600">
+          <Users className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+          <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Aucun utilisateur trouvé</h3>
+          <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
             Aucun utilisateur ne correspond à vos critères de recherche.
           </p>
         </div>

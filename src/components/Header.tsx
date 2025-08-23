@@ -141,6 +141,7 @@ const Header: React.FC<HeaderProps> = ({
       <AdminDashboard 
         isOpen={isAdminDashboardOpen} 
         onClose={() => setIsAdminDashboardOpen(false)} 
+        darkMode={darkMode}
       />
     </>
   );
