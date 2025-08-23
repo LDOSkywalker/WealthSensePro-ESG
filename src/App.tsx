@@ -6,8 +6,7 @@ import Landing from './pages/landing';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConversationProvider } from './contexts/ConversationContext';
 import ResetPassword from './components/ResetPassword';
-import { SessionListener } from './components/SessionListener';
-import { SessionExpiredBlock } from './components/SessionExpiredBlock';
+import { SessionListener, SessionExpiredBlock } from './components/sessions';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, loading } = useAuth();

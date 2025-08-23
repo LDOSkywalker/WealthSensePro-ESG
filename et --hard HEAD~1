@@ -1,0 +1,5 @@
+[33m49de51c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelop[m[33m, [m[1;31morigin/develop[m[33m)[m refactor: améliorer la cohérence des types et intégrer SessionTest
+[33m2075822[m Frontend: Nettoyage complet des dependances Firebase - Suppression de src/config/firebase.ts - Nettoyage de SessionListener.tsx - Suppression de la dependance firebase du package.json - Nettoyage des types Vite - Reinstallation des dependances sans Firebase - Plus d erreurs Firebase dans la console - Architecture plus propre et coherente
+[33m1567110[m � Documentation: Réorganisation complète des README
+[33md989279[m feat: Suppression du bouton 'Fermer' et nettoyage des composants inutilisés
+[33m6cfb441[m docs: Nettoyage des logs et documentation des dernières modifications

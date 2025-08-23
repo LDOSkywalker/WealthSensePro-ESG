@@ -36,6 +36,14 @@ export const SessionListener: React.FC<SessionListenerProps> = ({
           const errorData = await response.json();
           if (errorData.code === 'SESSION_REVOKED') {
             console.log('🚨 Session révoquée détectée via API');
+            
+            // ATTENTION: Ne pas modifier les types ci-dessous !
+            // Tentative de "correction" des erreurs de linter effectuée mais a causé des dysfonctionnements :
+            // - reason: 'revoked_by_admin' -> 'admin_revocation' 
+            // - createdAt/lastActivity: string -> number
+            // - Ajout de propriétés manquantes (deviceId, deviceLabel, etc.)
+            // Résultat: Fonctionnalité cassée, rollback nécessaire.
+            // Les erreurs de linter sont non-bloquantes, le code fonctionne correctement.
             onSessionRevoked({
               uid: currentUser.uid,
               status: 'revoked',
