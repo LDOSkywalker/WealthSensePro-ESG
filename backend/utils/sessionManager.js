@@ -50,9 +50,10 @@ class SessionManager {
 
     /**
      * Détermine si une session doit être révoquée selon la policy
+     * MODIFICATION : Tous les rôles ont maintenant la policy 'single' par défaut
      */
     mustRevokeAccordingToPolicy(sessionData, userRole) {
-        // Policy par défaut : single session
+        // Policy par défaut : single session pour TOUS les utilisateurs
         const policy = this.getSessionPolicy(userRole);
         
         if (policy === 'unlimited') return false;
@@ -61,7 +62,7 @@ class SessionManager {
             return true; // Sera géré dans la logique de création
         }
         
-        // Policy 'single' : toujours révoquer les autres
+        // Policy 'single' : toujours révoquer les autres (comportement par défaut)
         return true;
     }
 
@@ -77,10 +78,11 @@ class SessionManager {
             }
             
             // Fallback sur les policies par défaut selon le rôle
+            // MODIFICATION : Tous les rôles ont maintenant la policy 'single' par défaut
             const defaultPolicies = {
-                'admin': 'unlimited',
-                'support': 'unlimited',
-                'advisor': 'two',
+                'admin': 'single',        // ← CHANGÉ : était 'unlimited'
+                'support': 'single',      // ← CHANGÉ : était 'unlimited'
+                'advisor': 'single',      // ← CHANGÉ : était 'two'
                 'user': 'single'
             };
             
@@ -149,9 +151,11 @@ class SessionManager {
                 // 3. Révoquer les sessions selon la policy
                 let revokedCount = 0;
                 const policy = await this.getSessionPolicy(uid, userRole);
+                console.log('🔍 [DEBUG SESSION] Policy de session:', policy);
                 
+                // MODIFICATION : Tous les rôles ont maintenant la policy 'single' par défaut
                 if (policy === 'single') {
-                    // Policy single : révoquer toutes les autres sessions
+                    // Policy single : révoquer toutes les autres sessions (comportement par défaut)
                     activeSessions.docs.forEach(doc => {
                         if (doc.id !== jti) {
                             tx.update(doc.ref, {
@@ -182,7 +186,7 @@ class SessionManager {
                         }
                     }
                 }
-                // Policy unlimited : aucune révocation
+                // Policy unlimited : aucune révocation (maintenant optionnelle uniquement)
 
                 secureLogger.info('Révocation atomique effectuée', null, {
                     uidHash: uid,

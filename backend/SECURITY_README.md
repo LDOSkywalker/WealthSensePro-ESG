@@ -12,9 +12,11 @@ Ce document détaille l'architecture de sécurité complète du backend WealthSe
 La **Phase 1** garantit qu'un seul utilisateur peut être connecté simultanément par défaut, avec une **révocation atomique** des sessions existantes lors de nouvelles connexions.
 
 #### **Policies de session configurables**
-- **`single`** (défaut) : Une seule session active par compte
-- **`two`** : Deux sessions simultanées autorisées (pour les advisors)
-- **`unlimited`** : Sessions illimitées (pour les admins/support)
+- **`single`** (défaut pour TOUS les rôles) : Une seule session active par compte
+- **`two`** : Deux sessions simultanées autorisées (configurable manuellement)
+- **`unlimited`** : Sessions illimitées (configurable manuellement uniquement)
+
+**⚠️ IMPORTANT :** Depuis la version actuelle, **TOUS les utilisateurs** (y compris les admins et support) ont la policy `single` par défaut pour garantir la sécurité maximale. Les policies `two` et `unlimited` ne peuvent être activées que par configuration manuelle en base de données.
 
 #### **Révocation atomique**
 - **Transaction Firestore** : Création de la nouvelle session ET révocation des autres en une seule opération
