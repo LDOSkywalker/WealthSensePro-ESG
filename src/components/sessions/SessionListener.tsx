@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { SessionInfo } from '../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { SessionInfo } from '../../types';
 
 interface SessionListenerProps {
   onSessionRevoked: (session: SessionInfo) => void;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/auth';
 
 export const SessionTest: React.FC = () => {
   const { currentUser, sessionRevokedError } = useAuth();

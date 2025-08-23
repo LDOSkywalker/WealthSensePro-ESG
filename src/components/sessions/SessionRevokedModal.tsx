@@ -1,5 +1,5 @@
 import React from 'react';
-import { SessionRevokedError } from '../types';
+import { SessionRevokedError } from '../../types';
 
 interface SessionRevokedModalProps {
   isOpen: boolean;
