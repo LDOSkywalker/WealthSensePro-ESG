@@ -294,6 +294,47 @@ router.put('/users/:uid/policy', async (req, res) => {
 });
 
 /**
+ * GET /api/admin/users
+ * Récupère la liste de tous les utilisateurs (admin uniquement)
+ */
+router.get('/users', async (req, res) => {
+    try {
+        secureLogger.operation('admin_get_all_users', {
+            adminUid: req.adminUser.uid
+        });
+
+        const db = admin.firestore();
+        const usersSnapshot = await db.collection('users').get();
+        
+        const users = [];
+        usersSnapshot.forEach(doc => {
+            const userData = doc.data();
+            users.push({
+                uid: doc.id,
+                email: userData.email,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                role: userData.role || 'user',
+                isActive: userData.isActive,
+                createdAt: userData.createdAt,
+                lastLogin: userData.lastLogin || null,
+                sessionPolicy: userData.sessionPolicy || 'single'
+            });
+        });
+
+        res.json({
+            success: true,
+            users,
+            count: users.length,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        secureLogger.error('Erreur récupération liste utilisateurs', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des utilisateurs' });
+    }
+});
+
+/**
  * GET /api/admin/users/:uid/policy
  * Récupère la policy de session d'un utilisateur
  */
