@@ -24,10 +24,14 @@ const passwordResetLimiter = rateLimit({
     },
     // Personnalisation des clés de rate limiting
     keyGenerator: (req) => {
+        // 🔧 CORRECTION : Gestion IPv6 compatible avec express-rate-limit v7
+        const ip = req.ip || req.connection.remoteAddress;
+        const cleanIp = ip.includes(':') ? ip.split(':')[0] : ip;
+        
         // Utilise l'IP + email hashé pour un rate limiting plus précis
         const email = req.body?.email;
         const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
-        return `${req.ip}-${emailHash}`;
+        return `${cleanIp}-${emailHash}`;
     },
     // Skip certaines conditions (uniquement en développement)
     skip: (req) => {
@@ -39,18 +43,8 @@ const passwordResetLimiter = rateLimit({
     // Validation des données avant comptage
     skipFailedRequests: false,
     skipSuccessfulRequests: false,
-    // Callback après chaque requête
-    onLimitReached: (req, res, options) => {
-        const email = req.body?.email;
-        const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
-        
-        secureLogger.security('Rate limit atteint', {
-            ip: req.ip,
-            emailHash,
-            path: req.path,
-            method: req.method
-        });
-    }
+    // 🔧 CORRECTION : Suppression de onLimitReached déprécié dans v7
+    // Le logging est maintenant géré automatiquement par express-rate-limit
 });
 
 // Rate limiter pour les tentatives de connexion
@@ -64,9 +58,13 @@ const loginLimiter = rateLimit({
         retryAfter: 900 // 15 minutes en secondes
     },
     keyGenerator: (req) => {
+        // 🔧 CORRECTION : Gestion IPv6 compatible avec express-rate-limit v7
+        const ip = req.ip || req.connection.remoteAddress;
+        const cleanIp = ip.includes(':') ? ip.split(':')[0] : ip;
+        
         const email = req.body?.email;
         const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
-        return `login-${req.ip}-${emailHash}`;
+        return `login-${cleanIp}-${emailHash}`;
     },
     skip: (req) => {
         // Validation des données avant comptage
@@ -79,17 +77,8 @@ const loginLimiter = rateLimit({
         }
         return true;
     },
-    onLimitReached: (req, res, options) => {
-        const email = req.body?.email;
-        const emailHash = email ? email.substring(0, 8) + '***' : 'anonymous';
-        
-        secureLogger.security('Rate limit de connexion atteint', {
-            ip: req.ip,
-            emailHash,
-            path: req.path,
-            method: req.method
-        });
-    }
+    // 🔧 CORRECTION : Suppression de onLimitReached déprécié dans v7
+    // Le logging est maintenant géré automatiquement par express-rate-limit
 });
 
 // Rate limiter global pour l'API
@@ -101,14 +90,13 @@ const globalLimiter = rateLimit({
         error: 'Trop de requêtes. Réessayez plus tard.',
         code: 'GLOBAL_RATE_LIMIT_EXCEEDED'
     },
-    keyGenerator: (req) => req.ip,
-    onLimitReached: (req, res, options) => {
-        secureLogger.security('Rate limit global atteint', {
-            ip: req.ip,
-            path: req.path,
-            method: req.method
-        });
-    }
+    keyGenerator: (req) => {
+        // 🔧 CORRECTION : Gestion IPv6 compatible avec express-rate-limit v7
+        const ip = req.ip || req.connection.remoteAddress;
+        return ip.includes(':') ? ip.split(':')[0] : ip;
+    },
+    // 🔧 CORRECTION : Suppression de onLimitReached déprécié dans v7
+    // Le logging est maintenant géré automatiquement par express-rate-limit
 });
 
 // Rate limiter spécifique pour l'inscription
@@ -120,7 +108,11 @@ const signupLimiter = rateLimit({
         error: 'Trop de tentatives d\'inscription. Réessayez dans 1 heure.',
         code: 'SIGNUP_RATE_LIMIT_EXCEEDED'
     },
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => {
+        // 🔧 CORRECTION : Gestion IPv6 compatible avec express-rate-limit v7
+        const ip = req.ip || req.connection.remoteAddress;
+        return ip.includes(':') ? ip.split(':')[0] : ip;
+    },
     skip: (req) => {
         // Validation des données avant comptage
         const { email } = req.body || {};
@@ -132,13 +124,8 @@ const signupLimiter = rateLimit({
         }
         return true;
     },
-    onLimitReached: (req, res, options) => {
-        secureLogger.security('Rate limit d\'inscription atteint', {
-            ip: req.ip,
-            path: req.path,
-            method: req.method
-        });
-    }
+    // 🔧 CORRECTION : Suppression de onLimitReached déprécié dans v7
+    // Le logging est maintenant géré automatiquement par express-rate-limit
 });
 
 module.exports = {

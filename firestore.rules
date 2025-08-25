@@ -12,6 +12,27 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Fonction pour vérifier si l'utilisateur est administrateur
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Fonction pour vérifier si l'utilisateur a un rôle spécifique
+    function hasRole(role) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Fonction pour vérifier si l'utilisateur a un rôle admin ou support
+    function isAdminOrSupport() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'support'];
+    }
+
     // Fonction pour valider les données utilisateur
     function validateUserData() {
       let data = request.resource.data;
@@ -33,32 +54,47 @@ service cloud.firestore {
 
     // Rules for the users collection
     match /users/{userId} {
+      // Création : utilisateur authentifié ou admin
       allow create: if isAuthenticated() && 
-                   isOwner(userId) && 
+                   (isOwner(userId) || isAdmin()) && 
                    validateUserData();
-      allow read: if isOwner(userId);
-      allow update: if isOwner(userId) && 
-                   validateUserData() &&
-                   request.resource.data.diff(resource.data).affectedKeys()
-                   .hasOnly(['firstName', 'lastName', 'updatedAt']);
+      
+      // Lecture : propriétaire ou admin
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Mise à jour : propriétaire ou admin
+      allow update: if (isOwner(userId) && 
+                       validateUserData() &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['firstName', 'lastName', 'updatedAt'])) ||
+                     (isAdmin() && 
+                      validateUserData() &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['firstName', 'lastName', 'role', 'isActive', 'updatedAt', 'adminCreatedAt', 'adminCreatedBy']));
+      
+      // Suppression : interdite pour tous (sécurité)
       allow delete: if false;
     }
     
     // Rules for conversations
     match /conversations/{conversationId} {
+      // Création : utilisateur authentifié
       allow create: if isAuthenticated() && 
                    request.resource.data.userId == request.auth.uid &&
                    validateConversationData();
       
+      // Lecture : propriétaire ou admin
       allow read: if isAuthenticated() && 
-                 resource.data.userId == request.auth.uid;
+                 (resource.data.userId == request.auth.uid || isAdmin());
       
+      // Mise à jour : propriétaire ou admin
       allow update: if isAuthenticated() && 
-                   resource.data.userId == request.auth.uid &&
+                   (resource.data.userId == request.auth.uid || isAdmin()) &&
                    request.resource.data.userId == request.auth.uid;
       
+      // Suppression : propriétaire ou admin
       allow delete: if isAuthenticated() && 
-                   resource.data.userId == request.auth.uid;
+                   (resource.data.userId == request.auth.uid || isAdmin());
       
       // Rules for messages in conversations
       match /messages/{messageId} {
@@ -70,16 +106,46 @@ service cloud.firestore {
                  data.timestamp is timestamp;
         }
 
+        // Création : propriétaire de la conversation
         allow create: if isAuthenticated() && 
                      get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid &&
                      validateMessageData();
         
+        // Lecture : propriétaire ou admin
         allow read: if isAuthenticated() && 
-                   get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+                   (get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid ||
+                    isAdmin());
         
+        // Suppression : propriétaire ou admin
         allow delete: if isAuthenticated() && 
-                     get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+                     (get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid ||
+                      isAdmin());
       }
+    }
+    
+    // Rules for sessions collection (gestion des sessions sécurisées)
+    match /sessions/{sessionId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null &&
+                 (resource.data.uid == request.auth.uid || isAdmin());
+      
+      // Écriture réservée au backend uniquement
+      allow write: if false;
+    }
+
+    // Collection admin_logs pour tracer les actions administratives
+    match /admin_logs/{logId} {
+      // Lecture et écriture : admin uniquement
+      allow read, write: if isAdmin();
+    }
+
+    // Collection system pour les configurations système
+    match /system/{docId} {
+      // Lecture : admin uniquement
+      allow read: if isAdmin();
+      
+      // Écriture : admin uniquement
+      allow write: if isAdmin();
     }
     
     // Default rule - deny all other access

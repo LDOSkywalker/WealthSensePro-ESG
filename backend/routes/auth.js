@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/auth');
 const { passwordResetLimiter, loginLimiter, signupLimiter } = require('../middleware/rateLimit');
 const { secureLogger } = require('../utils/secureLogger');
+const sessionManager = require('../utils/sessionManager');
 
 // Vérification de la présence du JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -66,29 +67,21 @@ router.post('/login', loginLimiter, async (req, res) => {
         
         secureLogger.info('Utilisateur trouvé', { uid: userCredential.uid });
 
-        // 🔐 ÉTAPE 3 : Génération des tokens JWT (flux hybride préservé)
-        secureLogger.info('Génération des tokens JWT...');
-        const accessToken = jwt.sign(
-            { 
-                uid: userCredential.uid, 
-                email: userCredential.email,
-                type: 'access',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '15m' } // Access token court
+        // 🔐 ÉTAPE 3 : Récupération du rôle utilisateur
+        const db = admin.firestore();
+        const userDoc = await db.collection('users').doc(userCredential.uid).get();
+        const userRole = userDoc.exists ? userDoc.data().role || 'user' : 'user';
+        
+        // 🔐 ÉTAPE 4 : Génération des tokens JWT avec gestion de session sécurisée et révocation atomique
+        secureLogger.info('Génération des tokens JWT avec session sécurisée et révocation atomique...');
+        const session = await sessionManager.createSession(
+            userCredential.uid, 
+            userCredential.email, 
+            req,
+            userRole
         );
-
-        const refreshToken = jwt.sign(
-            { 
-                uid: userCredential.uid, 
-                email: userCredential.email,
-                type: 'refresh',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' } // Refresh token long
-        );
+        
+        const { accessToken, refreshToken } = session;
 
         secureLogger.info('Login réussi', { uid: userCredential.uid, email: userCredential.email });
         
@@ -99,7 +92,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         secureLogger.info('Anciens cookies nettoyés');
         
         // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
-        res.cookie('__Host-refresh_token', refreshToken, {
+        res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
@@ -138,10 +131,10 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 });
 
-// Endpoint de rafraîchissement du token
+// Endpoint de rafraîchissement du token avec rotation sécurisée
 router.post('/refresh', async (req, res) => {
     try {
-        const refreshToken = req.cookies['__Host-refresh_token'];
+        const refreshToken = req.cookies['refresh_token'];
         
         if (!refreshToken) {
             return res.status(401).json({
@@ -151,42 +144,30 @@ router.post('/refresh', async (req, res) => {
             });
         }
 
-        // Vérifier le refresh token
-        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        // Rafraîchir la session avec rotation du refresh token
+        const session = await sessionManager.refreshSession(refreshToken, req);
         
-        if (decoded.type !== 'refresh') {
-            return res.status(401).json({
-                success: false,
-                error: 'Token invalide',
-                code: 'INVALID_TOKEN_TYPE'
-            });
-        }
-
-        // Vérifier que l'utilisateur existe toujours
-        const user = await admin.auth().getUser(decoded.uid);
-        
-        secureLogger.info('Access token rafraîchi', { uid: user.uid });
-
-        // Générer un nouvel access token
-        const newAccessToken = jwt.sign(
-            { 
-                uid: user.uid, 
-                email: user.email,
-                type: 'access',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '15m' }
-        );
+        // Mettre à jour le cookie avec le nouveau refresh token
+        res.cookie('refresh_token', session.refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+        });
 
         res.json({
             success: true,
-            access_token: newAccessToken,
+            access_token: session.accessToken,
             exp: Date.now() + (15 * 60 * 1000)
         });
 
     } catch (error) {
         secureLogger.error('Erreur refresh token', error);
+        
+        // En cas d'erreur de sécurité, révoquer le cookie
+        res.clearCookie('refresh_token');
+        
         res.status(401).json({
             success: false,
             error: 'Token invalide ou expiré',
@@ -195,11 +176,27 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-// Endpoint de déconnexion
+// Endpoint de déconnexion avec révocation de session
 router.post('/logout', async (req, res) => {
     try {
-        res.clearCookie('__Host-refresh_token');
-        secureLogger.info('Utilisateur déconnecté');
+        const refreshToken = req.cookies['refresh_token'];
+        
+        if (refreshToken) {
+            try {
+                // Décoder le token pour récupérer l'uid et deviceId
+                const decoded = jwt.verify(refreshToken, JWT_SECRET);
+                if (decoded.typ === 'refresh' && decoded.sub && decoded.dev) {
+                    // Révoquer la session de l'utilisateur
+                    await sessionManager.logoutUser(decoded.sub, decoded.dev);
+                }
+            } catch (error) {
+                // Si le token est invalide, on continue avec le logout
+                secureLogger.warn('Token invalide lors du logout', error);
+            }
+        }
+        
+        res.clearCookie('refresh_token');
+        secureLogger.info('Utilisateur déconnecté avec révocation de session');
         res.json({ success: true });
     } catch (error) {
         secureLogger.error('Erreur logout', error);
@@ -213,6 +210,33 @@ router.post('/signup', signupLimiter, async (req, res) => {
         const { email, password, firstName, lastName, referralSource, otherReferralSource, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
 
         secureLogger.operation('signup', { email });
+        
+        // 🔧 CORRECTION : Validation des données côté serveur
+        if (!email || !password || !firstName || !lastName || !referralSource) {
+            return res.status(400).json({
+                success: false,
+                error: 'Tous les champs obligatoires doivent être remplis',
+                code: 'MISSING_REQUIRED_FIELDS'
+            });
+        }
+        
+        // Validation spécifique pour otherReferralSource
+        if (referralSource === 'other' && (!otherReferralSource || !otherReferralSource.trim())) {
+            return res.status(400).json({
+                success: false,
+                error: 'Veuillez préciser comment vous avez connu WealthSensePro',
+                code: 'MISSING_OTHER_REFERRAL_SOURCE'
+            });
+        }
+        
+        // Validation du disclaimer
+        if (!disclaimerAccepted) {
+            return res.status(400).json({
+                success: false,
+                error: 'Vous devez accepter les conditions d\'utilisation',
+                code: 'DISCLAIMER_NOT_ACCEPTED'
+            });
+        }
 
         // Créer l'utilisateur dans Firebase Auth
         const userRecord = await admin.auth().createUser({
@@ -223,69 +247,147 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
         // Enregistrer les informations dans Firestore
         const db = admin.firestore();
-        await db.collection('users').doc(userRecord.uid).set({
+        
+        // 🔧 CORRECTION : Nettoyer les données avant envoi à Firestore
+        const userData = {
             email,
             firstName,
             lastName,
             referralSource,
-            otherReferralSource,
             disclaimerAccepted,
             disclaimerAcceptedAt,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             role: 'user',
             isActive: true
+        };
+        
+        // Ajouter otherReferralSource seulement s'il a une valeur valide
+        if (otherReferralSource && otherReferralSource.trim()) {
+            userData.otherReferralSource = otherReferralSource;
+        }
+        
+        secureLogger.info('Données utilisateur préparées pour Firestore', null, {
+            uidHash: userRecord.uid,
+            hasOtherReferralSource: !!userData.otherReferralSource
         });
+        
+        await db.collection('users').doc(userRecord.uid).set(userData);
 
         secureLogger.info('Utilisateur créé avec succès', { uid: userRecord.uid });
 
-        // Générer les tokens
-        const accessToken = jwt.sign(
-            { 
-                uid: userRecord.uid, 
-                email: userRecord.email,
-                type: 'access',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '15m' }
-        );
-
-        const refreshToken = jwt.sign(
-            { 
-                uid: userRecord.uid, 
-                email: userRecord.email,
-                type: 'refresh',
-                loginTime: Date.now()
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-        // Définir le cookie refresh_token
-        res.cookie('__Host-refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000
+        // 🔐 ÉTAPE : Génération des tokens avec gestion de session sécurisée et révocation atomique
+        secureLogger.info('Début génération des tokens JWT...', null, { 
+            uidHash: userRecord.uid,
+            emailHash: userRecord.email 
         });
+        
+        try {
+            const session = await sessionManager.createSession(
+                userRecord.uid, 
+                userRecord.email, 
+                req,
+                'user' // Nouveaux utilisateurs ont le rôle 'user' par défaut
+            );
+            
+            secureLogger.info('Session créée avec succès', null, { 
+                uidHash: userRecord.uid,
+                sessionIdHash: session.jti 
+            });
+            
+            const { accessToken, refreshToken } = session;
 
-        res.json({
-            success: true,
-            access_token: accessToken,
-            user: {
-                uid: userRecord.uid,
-                email: userRecord.email,
-                firstName,
-                lastName
+            // Définir le cookie refresh_token
+            res.cookie('refresh_token', refreshToken, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                path: '/',
+                maxAge: 7 * 24 * 60 * 60 * 1000
+            });
+
+            res.json({
+                success: true,
+                access_token: accessToken,
+                user: {
+                    uid: userRecord.uid,
+                    email: userRecord.email,
+                    firstName,
+                    lastName
+                }
+            });
+
+        } catch (error) {
+            // 🔍 LOGGING DÉTAILLÉ DE L'ERREUR
+            secureLogger.error('Erreur détaillée signup', error, {
+                uidHash: userRecord?.uid || 'N/A',
+                emailHash: userRecord?.email || 'N/A',
+                errorName: error.name,
+                errorCode: error.code,
+                errorMessage: error.message,
+                errorStack: error.stack?.substring(0, 500), // Limiter la taille
+                step: 'session_creation'
+            });
+            
+            // 🔧 CORRECTION : Gestion spécifique des erreurs Firestore
+            if (error.message && error.message.includes('Firestore')) {
+                secureLogger.error('Erreur Firestore détectée', error, {
+                    uidHash: userRecord?.uid || 'N/A',
+                    step: 'firestore_write',
+                    errorType: 'firestore_validation'
+                });
+                
+                return res.status(400).json({
+                    success: false,
+                    error: 'Erreur lors de la création du profil utilisateur',
+                    code: 'FIRESTORE_ERROR'
+                });
             }
-        });
-
-    } catch (error) {
-        secureLogger.error('Erreur signup', error);
-        res.status(400).json({ success: false, error: error.message });
-    }
+            
+            // 🔍 VÉRIFICATION DES VARIABLES CRITIQUES
+            secureLogger.error('Vérification des variables critiques', null, {
+                JWT_SECRET_PRESENT: !!process.env.JWT_SECRET,
+                JWT_SECRET_LENGTH: process.env.JWT_SECRET?.length || 0,
+                FIREBASE_PROJECT_ID: !!process.env.FIREBASE_PROJECT_ID,
+                NODE_ENV: process.env.NODE_ENV
+            });
+            
+            // 🔍 RÉPONSE D'ERREUR SÉCURISÉE
+            let errorMessage = 'Erreur lors de l\'inscription';
+            let errorCode = 'SIGNUP_ERROR';
+            
+            if (error.code === 'auth/email-already-exists') {
+                errorMessage = 'Un compte avec cet email existe déjà';
+                errorCode = 'EMAIL_ALREADY_EXISTS';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'Le mot de passe est trop faible';
+                errorCode = 'WEAK_PASSWORD';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Format d\'email invalide';
+                errorCode = 'INVALID_EMAIL';
+            }
+            
+                                    res.status(400).json({ 
+                success: false, 
+                error: errorMessage,
+                code: errorCode
+            });
+         }
+             } catch (error) {
+            secureLogger.error('Erreur générale signup', error, {
+                errorName: error.name,
+                errorCode: error.code,
+                errorMessage: error.message,
+                errorStack: error.stack?.substring(0, 500),
+                step: 'general_signup'
+            });
+            
+            res.status(500).json({ 
+                success: false, 
+                error: 'Erreur interne du serveur',
+                code: 'INTERNAL_ERROR'
+            });
+        }
 });
 
 // Endpoint de modification du profil
@@ -397,15 +499,74 @@ router.put('/password', authMiddleware, async (req, res) => {
 // Endpoint pour récupérer le profil utilisateur
 router.get('/profile', authMiddleware, async (req, res) => {
     try {
-        const db = admin.firestore();
-        const userDoc = await db.collection('users').doc(req.user.uid).get();
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: 'Utilisateur non trouvé' });
-        }
-        res.json(userDoc.data());
+        // Utiliser les données déjà récupérées par le middleware auth
+        // qui inclut maintenant le rôle et autres champs Firestore
+        const userProfile = {
+            uid: req.user.uid,
+            email: req.user.email,
+            displayName: req.user.displayName,
+            photoURL: req.user.photoURL,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            role: req.user.role,
+            isActive: req.user.isActive,
+            disclaimerAccepted: req.user.disclaimerAccepted,
+            disclaimerAcceptedAt: req.user.disclaimerAcceptedAt,
+            sessionPolicy: req.user.sessionPolicy
+        };
+        
+        res.json(userProfile);
     } catch (error) {
         secureLogger.error('Erreur récupération profil', error);
         res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
+// Endpoint pour récupérer les informations de session (nécessaire pour le listener temps réel)
+router.get('/session-info', authMiddleware, async (req, res) => {
+    try {
+        // Récupérer le sessionId depuis le token décodé
+        const authHeader = req.headers.authorization;
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        if (!decoded.sessionId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Session ID manquant' 
+            });
+        }
+        
+        // Récupérer les informations de session
+        const sessionValidation = await sessionManager.validateSession(decoded.sessionId);
+        
+        if (!sessionValidation.valid) {
+            return res.status(401).json({
+                success: false,
+                code: sessionValidation.code,
+                error: 'Session invalide'
+            });
+        }
+        
+        // Retourner les informations de session (sans données sensibles)
+        res.json({
+            success: true,
+            session: {
+                jti: decoded.sessionId,
+                deviceId: sessionValidation.session.deviceId,
+                deviceLabel: sessionValidation.session.deviceLabel,
+                status: sessionValidation.session.status,
+                createdAt: sessionValidation.session.createdAt,
+                lastUsed: sessionValidation.session.lastUsed
+            }
+        });
+        
+    } catch (error) {
+        secureLogger.error('Erreur récupération infos session', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur' 
+        });
     }
 });
 

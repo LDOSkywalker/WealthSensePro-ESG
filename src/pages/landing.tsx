@@ -29,7 +29,7 @@ import {
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { authService } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
-import Logo from '../components/Logo';
+import { Logo } from '../components/ui';
 import { useInView as useInViewIntersection } from 'react-intersection-observer';
 
 // Register ChartJS components

@@ -1,3 +1,7 @@
+// ⚠️ COMPOSANT NON UTILISÉ POUR L'INSTANT
+// Ce composant est prévu pour afficher des boutons de sujets individuels
+// mais n'est pas encore intégré dans l'interface principale de l'application
+//
 import React from 'react';
 import { Topic } from '../types';
 import * as LucideIcons from 'lucide-react';

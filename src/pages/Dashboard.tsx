@@ -2,13 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { useConversation } from '../contexts/ConversationContext';
-import ConversationHistory from '../components/ConversationHistory';
+import { ConversationHistory, ChatMessage } from '../components/chat';
 import axios from 'axios';
-import ChatMessage from '../components/ChatMessage';
-import LoadingDots from '../components/LoadingDots';
+import { LoadingDots, DeleteModal } from '../components/ui';
 import { Message, IAModel, IA_MODELS, Conversation } from '../types';
 import { Send, AlertTriangle, Plus, HelpCircle, Package, Scale, Menu, Sparkles } from 'lucide-react';
-import DeleteModal from '../components/DeleteModal';
 
 const capitalizeFirstLetter = (string: string): string => {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
@@ -188,6 +186,13 @@ const Dashboard: React.FC = () => {
       
     } catch (error: any) {
       console.error('Error sending message:', error);
+      
+      // Vérifier si c'est une erreur SESSION_REVOKED
+      if (error.response?.data?.code === 'SESSION_REVOKED') {
+        console.log('🚨 Session révoquée détectée dans Dashboard, pas d\'affichage du message d\'erreur');
+        // Ne pas afficher de message d'erreur, la mini-modale mobile s'affichera
+        return;
+      }
       
       let errorMessage = "Désolé, une erreur s'est produite lors de la communication avec l'assistant.";
       

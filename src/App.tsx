@@ -5,7 +5,8 @@ import Login from './pages/Login';
 import Landing from './pages/landing';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConversationProvider } from './contexts/ConversationContext';
-import ResetPassword from './components/ResetPassword';
+import { ResetPassword } from './components/auth';
+import { SessionListener, SessionExpiredBlock } from './components/sessions';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, loading } = useAuth();
@@ -26,7 +27,29 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const AppRoutes: React.FC = () => {
-  const { currentUser, loading } = useAuth();
+  const { 
+    currentUser, 
+    loading, 
+    sessionRevokedError, isSessionRevoked,
+    handleSessionRevoked,
+    clearSessionRevokedError,
+    handleSessionUpdated, forceReconnect
+  } = useAuth();
+
+  // Fonction pour détecter si on est sur mobile
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
+  // Si la session est révoquée, afficher le blocage complet
+  if (isSessionRevoked && sessionRevokedError) {
+    return (
+      <SessionExpiredBlock
+        error={sessionRevokedError}
+        onReconnect={forceReconnect}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -37,28 +60,40 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <ConversationProvider>
-              <Dashboard />
-            </ConversationProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          currentUser ? <Navigate to="/dashboard" /> : <Landing />
-        }
-      />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <>
+      {/* Listener temps réel pour les sessions */}
+      {currentUser && (
+        <SessionListener
+          onSessionRevoked={handleSessionRevoked}
+          onSessionUpdated={handleSessionUpdated}
+        />
+      )}
+
+      {/* Les modales ne sont plus nécessaires - remplacées par le blocage complet */}
+
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <ConversationProvider>
+                <Dashboard />
+              </ConversationProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            currentUser ? <Navigate to="/dashboard" /> : <Landing />
+          }
+        />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </>
   );
 };
 

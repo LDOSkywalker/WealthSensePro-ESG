@@ -5,10 +5,12 @@ const cookieParser = require('cookie-parser');
 const { admin } = require('./firebase-config');
 const { globalLimiter } = require('./middleware/rateLimit');
 const { secureLogger } = require('./utils/secureLogger');
+const sessionCleanup = require('./utils/sessionCleanup');
 const authRoutes = require('./routes/auth');
 const authMiddleware = require('./middleware/auth');
 const conversationsRoutes = require('./routes/conversations');
 const messagesRoutes = require('./routes/messages');
+const adminRoutes = require('./routes/admin');
 require('dotenv').config();
 
 const app = express();
@@ -101,6 +103,9 @@ app.use('/api/protected', authMiddleware, (req, res) => {
         user: req.user
     });
 });
+
+// Routes d'administration (protégées par middleware admin)
+app.use('/api/admin', adminRoutes);
 
 // Route racine pour health check
 app.get('/', (req, res) => {
@@ -230,7 +235,19 @@ app.get('/api/registration', handleRegistration);
 app.post('/api/registration', handleRegistration);
 
 app.listen(port, () => {
-    secureLogger.info(`Serveur démarré sur le port ${port}`);
+    console.log(`🚀 Serveur WealthSense API démarré sur le port ${port}`);
+    console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 Mode sécurité: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+    
+    // Démarrer le nettoyage automatique des sessions
+    sessionCleanup.start();
+    
+    // Log de démarrage sécurisé
+    secureLogger.info('Serveur démarré avec succès', null, {
+        port,
+        environment: process.env.NODE_ENV || 'development',
+        securityMode: isProduction ? 'production' : 'development'
+    });
 });
 
 module.exports = app; 
