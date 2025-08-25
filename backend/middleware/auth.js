@@ -7,10 +7,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_super_securise';
 
 const authMiddleware = async (req, res, next) => {
     try {
-        console.log('🔍 [DEBUG AUTH] Middleware auth appelé pour:', req.url);
-        console.log('🔍 [DEBUG AUTH] Méthode:', req.method);
-        console.log('🔍 [DEBUG AUTH] Headers reçus:', Object.keys(req.headers));
-        
         // Log de début d'authentification (sécurisé)
         secureLogger.operation('auth_start', { 
             path: req.url, 
@@ -19,12 +15,10 @@ const authMiddleware = async (req, res, next) => {
         
         // Récupération du token depuis le header Authorization
         const authHeader = req.headers.authorization;
-        console.log('🔍 [DEBUG AUTH] Header Authorization présent:', !!authHeader);
         let token = null;
         
         if (authHeader && authHeader.startsWith('Bearer ')) {
             token = authHeader.substring(7);
-            console.log('🔍 [DEBUG AUTH] Token extrait (longueur):', token.length);
             secureLogger.info('Token récupéré depuis Authorization header');
         }
 

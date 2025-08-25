@@ -139,62 +139,30 @@ const AuthForm: React.FC = () => {
     try {
       setLoading(true);
       
-      console.log('🔍 [FRONTEND DEBUG] Début processus d\'inscription avec formData:', {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        referralSource: formData.referralSource,
-        otherReferralSource: formData.otherReferralSource,
-        disclaimerAccepted: true,
-        disclaimerAcceptedAt: Date.now()
-      });
-      
-      // Vérifier les cookies avant l'inscription
-      console.log('🔍 [FRONTEND DEBUG] Cookies avant inscription:', document.cookie);
-      
-      const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        referralSource: formData.referralSource === 'other' ? 'other' : formData.referralSource,
-        otherReferralSource: formData.otherReferralSource,
-        disclaimerAccepted: true,
-        disclaimerAcceptedAt: Date.now()
-      };
-      
-      console.log('🔍 [FRONTEND DEBUG] Appel authService.signup avec:', userData);
-      
-      const signupResult = await authService.signup({
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        referralSource: formData.referralSource,
-        otherReferralSource: formData.otherReferralSource,
-        disclaimerAccepted: true,
-        disclaimerAcceptedAt: Date.now()
-      });
-      
-      console.log('🔍 [FRONTEND DEBUG] Inscription réussie, résultat:', signupResult);
-      
-      // Vérifier les cookies après l'inscription
-      console.log('🔍 [FRONTEND DEBUG] Cookies après inscription:', document.cookie);
-      
-      console.log('🔍 [FRONTEND DEBUG] Tentative de login automatique...');
-      await login(formData.email, formData.password);
-      
-      console.log('🔍 [FRONTEND DEBUG] Login automatique réussi, navigation vers /');
-      navigate('/');
+              const userData = {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            referralSource: formData.referralSource === 'other' ? 'other' : formData.referralSource,
+            otherReferralSource: formData.otherReferralSource,
+            disclaimerAccepted: true,
+            disclaimerAcceptedAt: Date.now()
+        };
+        
+        const signupResult = await authService.signup({
+            email: formData.email,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            referralSource: formData.referralSource,
+            otherReferralSource: formData.otherReferralSource,
+            disclaimerAccepted: true,
+            disclaimerAcceptedAt: Date.now()
+        });
+        
+        await login(formData.email, formData.password);
+        navigate('/');
       
     } catch (err: any) {
-      console.error('❌ [FRONTEND DEBUG] Erreur dans handleDisclaimerAccept:', {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        stack: err.stack,
-        response: err.response?.data,
-        status: err.response?.status
-      });
-      
       let errorMessage = 'Une erreur est survenue';
       
       if (err.code === 'auth/email-already-in-use') {
@@ -205,7 +173,6 @@ const AuthForm: React.FC = () => {
         errorMessage = "Format d'email invalide";
       } else if (err.message && err.message.includes('JSON.parse')) {
         errorMessage = 'Erreur de communication avec le serveur';
-        console.error('❌ [FRONTEND DEBUG] Erreur de parsing JSON détectée');
       }
       
       setError(errorMessage);

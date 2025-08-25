@@ -373,31 +373,21 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 code: errorCode
             });
          }
-     } catch (error) {
-         // 🔍 LOGGING DÉTAILLÉ DE L'ERREUR GÉNÉRALE
-         console.error('🔍 [DEBUG] Erreur complète:', {
-             name: error.name,
-             message: error.message,
-             stack: error.stack,
-             code: error.code,
-             type: typeof error,
-             keys: Object.keys(error)
-         });
-         
-         secureLogger.error('Erreur générale signup', error, {
-             errorName: error.name,
-             errorCode: error.code,
-             errorMessage: error.message,
-             errorStack: error.stack?.substring(0, 500),
-             step: 'general_signup'
-         });
-         
-         res.status(500).json({ 
-             success: false, 
-             error: 'Erreur interne du serveur',
-             code: 'INTERNAL_ERROR'
-         });
-     }
+             } catch (error) {
+            secureLogger.error('Erreur générale signup', error, {
+                errorName: error.name,
+                errorCode: error.code,
+                errorMessage: error.message,
+                errorStack: error.stack?.substring(0, 500),
+                step: 'general_signup'
+            });
+            
+            res.status(500).json({ 
+                success: false, 
+                error: 'Erreur interne du serveur',
+                code: 'INTERNAL_ERROR'
+            });
+        }
 });
 
 // Endpoint de modification du profil
