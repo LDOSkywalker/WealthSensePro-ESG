@@ -312,12 +312,28 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 errorCode = 'INVALID_EMAIL';
             }
             
-            res.status(400).json({ 
-                success: false, 
-                error: errorMessage,
-                code: errorCode
-            });
-        }
+                         res.status(400).json({ 
+                 success: false, 
+                 error: errorMessage,
+                 code: errorCode
+             });
+         }
+     } catch (error) {
+         // 🔍 LOGGING DÉTAILLÉ DE L'ERREUR GÉNÉRALE
+         secureLogger.error('Erreur générale signup', error, {
+             errorName: error.name,
+             errorCode: error.code,
+             errorMessage: error.message,
+             errorStack: error.stack?.substring(0, 500),
+             step: 'general_signup'
+         });
+         
+         res.status(500).json({ 
+             success: false, 
+             error: 'Erreur interne du serveur',
+             code: 'INTERNAL_ERROR'
+         });
+     }
 });
 
 // Endpoint de modification du profil
