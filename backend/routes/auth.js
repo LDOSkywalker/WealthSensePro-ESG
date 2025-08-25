@@ -312,11 +312,11 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 errorCode = 'INVALID_EMAIL';
             }
             
-                         res.status(400).json({ 
-                 success: false, 
-                 error: errorMessage,
-                 code: errorCode
-             });
+            res.status(400).json({ 
+                success: false, 
+                error: errorMessage,
+                code: errorCode
+            });
          }
      } catch (error) {
          // 🔍 LOGGING DÉTAILLÉ DE L'ERREUR GÉNÉRALE
