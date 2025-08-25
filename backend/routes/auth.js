@@ -257,25 +257,25 @@ router.post('/signup', signupLimiter, async (req, res) => {
             
             const { accessToken, refreshToken } = session;
 
-        // Définir le cookie refresh_token
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+            // Définir le cookie refresh_token
+            res.cookie('refresh_token', refreshToken, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                path: '/',
+                maxAge: 7 * 24 * 60 * 60 * 1000
+            });
 
-        res.json({
-            success: true,
-            access_token: accessToken,
-            user: {
-                uid: userRecord.uid,
-                email: userRecord.email,
-                firstName,
-                lastName
-            }
-        });
+            res.json({
+                success: true,
+                access_token: accessToken,
+                user: {
+                    uid: userRecord.uid,
+                    email: userRecord.email,
+                    firstName,
+                    lastName
+                }
+            });
 
         } catch (error) {
             // 🔍 LOGGING DÉTAILLÉ DE L'ERREUR
