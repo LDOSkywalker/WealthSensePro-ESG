@@ -4,6 +4,26 @@
 
 Ce document détaille l'architecture de sécurité complète du backend WealthSensePro-ESG, incluant le système de gestion des sessions, la protection contre les attaques, et les bonnes pratiques implémentées.
 
+## 🔧 **Corrections récentes de sécurité (Août 2025)**
+
+### **✅ Correction du système d'inscription**
+- **Problème résolu** : Erreur Firestore avec valeurs undefined
+- **Solution** : Validation côté serveur et nettoyage des données
+- **Sécurité** : Aucune exposition de données sensibles
+- **Logs** : Diagnostic détaillé avec pseudonymisation
+
+### **✅ Mise à jour express-rate-limit**
+- **Version** : Mise à jour vers v7.5.1 pour compatibilité IPv6
+- **Correction** : Gestion des adresses IPv6 dans les rate limiters
+- **Sécurité** : Suppression des options dépréciées (onLimitReached)
+- **Performance** : Rate limiting optimisé et stable
+
+### **✅ Nettoyage des logs de production**
+- **Suppression** : Logs de débogage inutiles
+- **Conservation** : Logs de sécurité essentiels
+- **Pseudonymisation** : Maintien de la traçabilité sécurisée
+- **Performance** : Réduction du bruit dans les logs de production
+
 ## 🔐 **Système de Gestion des Sessions Sécurisées**
 
 ### 🚀 **Single-Active-Session avec Handoff Explicite - Phase 1 ✅**
@@ -487,7 +507,7 @@ curl -X POST /api/admin/sessions/revoke-family
 ### **✅ Implémenté et testé**
 - [x] **Single-Active-Session** avec révocation atomique
 - [x] **Refresh tokens rotatifs** avec détection de réutilisation
-- [x] **Rate limiting intelligent** par route et global
+- [x] **Rate limiting intelligent** avec express-rate-limit v7.5.1
 - [x] **Logging sécurisé** avec pseudonymisation
 - [x] **Device labeling** non-PII
 - [x] **Policies de session** configurables par rôle
@@ -496,6 +516,8 @@ curl -X POST /api/admin/sessions/revoke-family
 - [x] **Headers de sécurité** automatiques
 - [x] **Configuration CORS** sécurisée
 - [x] **Protection CSRF** avec validation d'origine
+- [x] **Validation côté serveur** des données d'inscription
+- [x] **Prévention Firestore** des valeurs undefined
 
 ### **🔮 Prochaines étapes (Phase 2)**
 - [ ] **Listener temps réel** côté frontend
@@ -516,7 +538,7 @@ curl -X POST /api/admin/sessions/revoke-family
 
 ---
 
-**📅 Dernière mise à jour : 21/08/2025 - Système de sécurité complet et validé**
+**📅 Dernière mise à jour : 25/08/2025 - Système de sécurité complet et validé avec corrections d'inscription et optimisations**
 
 **✅ Niveau de sécurité actuel :** 🛡️ **CRITIQUE** (Maximum)
 **✅ Conformité RGPD :** 100%

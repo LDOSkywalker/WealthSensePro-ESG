@@ -2,44 +2,41 @@
 
 ## 📋 Vue d'ensemble
 
-Le backend de WealthSensePro-ESG est une **API REST sécurisée** construite avec **Node.js** et **Express.js**, utilisant **Firebase** comme base de données et service d'authentification. L'API implémente un système de gestion des sessions avancé avec **Single-Active-Session** et **refresh tokens rotatifs**.
+Le backend de **WealthSensePro-ESG** est une **API REST sécurisée** construite avec **Node.js** et **Express.js**, utilisant **Firebase Admin SDK** comme base de données et service d'authentification. L'API implémente un système de gestion des sessions avancé avec **Single-Active-Session** et **refresh tokens rotatifs**.
 
 ## 🏗️ Architecture
 
 ```
 backend/
-├── index.js                    # Point d'entrée principal
-├── firebase-config.js          # Configuration Firebase Admin
+├── index.js                    # Point d'entrée principal avec configuration serveur
+├── firebase-config.js          # Configuration Firebase Admin SDK
 ├── middleware/
 │   ├── auth.js                # Middleware d'authentification JWT
-│   └── rateLimit.js           # Protection contre les abus
+│   └── rateLimit.js           # Protection contre les abus (express-rate-limit v7.5.1)
 ├── routes/
-│   ├── auth.js                # Routes d'authentification
-│   ├── admin.js               # Routes d'administration
-│   ├── conversations.js       # Gestion des conversations
+│   ├── auth.js                # Routes d'authentification (login, signup, refresh, logout)
+│   ├── admin.js               # Routes d'administration (sessions, utilisateurs)
+│   ├── conversations.js       # Gestion des conversations IA
 │   └── messages.js            # Gestion des messages
-├── scripts/
-│   ├── create-admin.js        # Script de création du premier admin
-│   ├── test-admin.js          # Script de test de l'admin
-│   ├── cleanup-admin-script.js # Script de nettoyage
-│   └── README.md              # Documentation des scripts
 ├── utils/
 │   ├── sessionManager.js      # Gestion des sessions sécurisées
-│   ├── sessionCleanup.js      # Nettoyage automatique
-│   └── secureLogger.js        # Logging sécurisé
-└── package.json               # Dépendances et scripts
+│   ├── sessionCleanup.js      # Nettoyage automatique des sessions
+│   └── secureLogger.js        # Logging sécurisé avec pseudonymisation
+├── scripts/                    # Scripts d'administration
+├── package.json               # Dépendances et scripts
+└── TESTS_README.md            # Documentation des tests
 ```
 
 ## 🚀 Technologies utilisées
 
 - **Node.js** - Runtime JavaScript
 - **Express.js** - Framework web
-- **Firebase Admin SDK** - Authentification et base de données
+- **Firebase Admin SDK** - Authentification et base de données Firestore
 - **JWT** - Gestion des tokens d'authentification
 - **CORS** - Gestion des requêtes cross-origin
-- **Axios** - Client HTTP pour les webhooks
-- **Cookie Parser** - Gestion des cookies
-- **Express Rate Limit** - Protection contre les abus
+- **Axios** - Client HTTP pour les webhooks N8N
+- **Cookie Parser** - Gestion des cookies sécurisés
+- **Express Rate Limit v7.5.1** - Protection contre les abus avec compatibilité IPv6
 
 ## ⚙️ Configuration
 
@@ -70,6 +67,10 @@ REGISTRATION_WEBHOOK_URL=url_registration_n8n
 
 # Frontend URL (optionnel)
 FRONTEND_URL=url_frontend
+
+# Environnement
+NODE_ENV=production
+PORT=3006
 ```
 
 ### Installation et démarrage
@@ -110,8 +111,6 @@ node scripts/create-admin.js --email=admin@wealthsense.com --role=admin
 - Toutes les opérations sont loggées et traçables
 
 **⚠️ ATTENTION SÉCURITÉ :** Le script vérifie uniquement la présence d'admins dans Firestore. En cas de suppression manuelle d'un admin, le script pourrait être réutilisé. **Ne jamais supprimer manuellement un administrateur depuis Firestore.**
-
-**Documentation complète :** Voir `scripts/README.md`
 
 ## 🛡️ Dashboard Administrateur
 
@@ -220,16 +219,6 @@ secureLogger.operation('admin_get_all_users', {
 secureLogger.error('Erreur récupération liste utilisateurs', error);
 ```
 
-#### **Logs de débogage**
-
-Des logs de débogage sont ajoutés pour faciliter le diagnostic :
-
-```javascript
-console.log('🔍 [DEBUG ADMIN] Headers reçus:', req.headers);
-console.log('🔍 [DEBUG ADMIN] Token décodé:', { uid: decoded.uid, exp: decoded.exp });
-console.log('🔍 [DEBUG ADMIN] Authentification admin réussie pour:', user.email);
-```
-
 ### Fonctionnalités à venir
 
 - **Gestion des sessions** : Monitoring et révocation des sessions actives
@@ -273,7 +262,7 @@ L'API utilise un système d'authentification hybride combinant **Firebase Auth**
 - Récupération des informations utilisateur via Firebase Admin
 - Génération des tokens JWT (access + refresh)
 - Création d'une session sécurisée avec device labeling
-- Stockage du refresh token en cookie sécurisé (`__Host-refresh_token`)
+- Stockage du refresh token en cookie sécurisé (`refresh_token`)
 
 #### 2. Rafraîchissement du token (`POST /api/auth/refresh`)
 
@@ -336,6 +325,12 @@ L'API utilise un système d'authentification hybride combinant **Firebase Auth**
   }
 }
 ```
+
+**Validation côté serveur :**
+- Vérification des champs obligatoires
+- Validation du format des données
+- Prévention des valeurs undefined pour Firestore
+- Gestion des erreurs avec codes normalisés
 
 ### Gestion du profil
 
@@ -442,7 +437,8 @@ http://localhost:3006/api
   "createdAt": 1234567890,
   "updatedAt": 1234567890,
   "role": "user",
-  "isActive": true
+  "isActive": true,
+  "sessionPolicy": "single"
 }
 ```
 
@@ -561,10 +557,12 @@ node test-api-sessions.js
 
 ### Gestion des erreurs
 
-- Logs détaillés en développement
-- Logs sécurisés et pseudonymisés en production
-- Gestion des erreurs Firebase
-- Validation des données d'entrée
+- **Logs détaillés** en développement avec diagnostic complet
+- **Logs sécurisés** et pseudonymisés en production
+- **Gestion des erreurs Firebase** avec codes d'erreur spécifiques
+- **Validation des données d'entrée** côté serveur pour l'inscription
+- **Prévention Firestore** : Gestion des valeurs undefined et validation des types
+- **Codes d'erreur normalisés** : Réponses API cohérentes et informatives
 
 ### Performance
 
@@ -601,10 +599,12 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 - Gestion des sessions en base de données
 
 ### ✅ **Sécurité renforcée**
-- Rate limiting intelligent
-- Logging sécurisé avec pseudonymisation
-- Protection CSRF
-- Headers de sécurité automatiques
+- **Rate limiting intelligent** avec express-rate-limit v7.5.1
+- **Logging sécurisé** avec pseudonymisation automatique
+- **Protection CSRF** avec validation d'origine
+- **Headers de sécurité** automatiques
+- **Compatibilité IPv6** dans les rate limiters
+- **Validation côté serveur** des données d'inscription
 
 ### ✅ **Dashboard Administrateur**
 - Interface sécurisée pour la gestion des utilisateurs
@@ -614,4 +614,4 @@ Backend développé pour WealthSensePro-ESG - Plateforme d'investissement ESG.
 
 ---
 
-**📅 Dernière mise à jour : 21/08/2025 - Architecture complète et sécurisée avec dashboard administrateur** 
+**📅 Dernière mise à jour : 25/08/2025 - Architecture complète et sécurisée avec système d'inscription corrigé et optimisations de sécurité** 
