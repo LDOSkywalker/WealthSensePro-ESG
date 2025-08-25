@@ -67,10 +67,28 @@ class SessionManager {
     }
 
     /**
+     * Récupère la policy par défaut selon le rôle (sans accès à la base)
+     */
+    getDefaultPolicy(userRole = 'user') {
+        const defaultPolicies = {
+            'admin': 'single',
+            'support': 'single',
+            'advisor': 'single',
+            'user': 'single'
+        };
+        return defaultPolicies[userRole] || 'single';
+    }
+
+    /**
      * Récupère la policy de session selon le rôle et la configuration personnalisée
      */
     async getSessionPolicy(uid, userRole = 'user') {
         try {
+            // Si pas d'uid (cas d'inscription), retourner la policy par défaut
+            if (!uid) {
+                return this.getDefaultPolicy(userRole);
+            }
+            
             // Vérifier d'abord s'il y a une policy personnalisée en base
             const userDoc = await this.db.collection('users').doc(uid).get();
             if (userDoc.exists && userDoc.data().sessionPolicy) {
@@ -78,15 +96,7 @@ class SessionManager {
             }
             
             // Fallback sur les policies par défaut selon le rôle
-            // MODIFICATION : Tous les rôles ont maintenant la policy 'single' par défaut
-            const defaultPolicies = {
-                'admin': 'single',        // ← CHANGÉ : était 'unlimited'
-                'support': 'single',      // ← CHANGÉ : était 'unlimited'
-                'advisor': 'single',      // ← CHANGÉ : était 'two'
-                'user': 'single'
-            };
-            
-            return defaultPolicies[userRole] || 'single';
+            return this.getDefaultPolicy(userRole);
         } catch (error) {
             secureLogger.error('Erreur récupération policy session', error);
             // En cas d'erreur, retourner la policy la plus restrictive
@@ -150,7 +160,8 @@ class SessionManager {
 
                 // 3. Révoquer les sessions selon la policy
                 let revokedCount = 0;
-                const policy = await this.getSessionPolicy(uid, userRole);
+                // Pour l'inscription, utiliser directement le rôle sans uid
+                const policy = uid ? await this.getSessionPolicy(uid, userRole) : this.getDefaultPolicy(userRole);
                 console.log('🔍 [DEBUG SESSION] Policy de session:', policy);
                 
                 // MODIFICATION : Tous les rôles ont maintenant la policy 'single' par défaut
