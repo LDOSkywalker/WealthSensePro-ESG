@@ -236,15 +236,26 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
         secureLogger.info('Utilisateur créé avec succès', { uid: userRecord.uid });
 
-        // Générer les tokens avec gestion de session sécurisée et révocation atomique
-        const session = await sessionManager.createSession(
-            userRecord.uid, 
-            userRecord.email, 
-            req,
-            'user' // Nouveaux utilisateurs ont le rôle 'user' par défaut
-        );
+        // 🔐 ÉTAPE : Génération des tokens avec gestion de session sécurisée et révocation atomique
+        secureLogger.info('Début génération des tokens JWT...', null, { 
+            uidHash: userRecord.uid,
+            emailHash: userRecord.email 
+        });
         
-        const { accessToken, refreshToken } = session;
+        try {
+            const session = await sessionManager.createSession(
+                userRecord.uid, 
+                userRecord.email, 
+                req,
+                'user' // Nouveaux utilisateurs ont le rôle 'user' par défaut
+            );
+            
+            secureLogger.info('Session créée avec succès', null, { 
+                uidHash: userRecord.uid,
+                sessionIdHash: session.jti 
+            });
+            
+            const { accessToken, refreshToken } = session;
 
         // Définir le cookie refresh_token
         res.cookie('refresh_token', refreshToken, {
@@ -266,10 +277,47 @@ router.post('/signup', signupLimiter, async (req, res) => {
             }
         });
 
-    } catch (error) {
-        secureLogger.error('Erreur signup', error);
-        res.status(400).json({ success: false, error: error.message });
-    }
+        } catch (error) {
+            // 🔍 LOGGING DÉTAILLÉ DE L'ERREUR
+            secureLogger.error('Erreur détaillée signup', error, {
+                uidHash: userRecord?.uid || 'N/A',
+                emailHash: userRecord?.email || 'N/A',
+                errorName: error.name,
+                errorCode: error.code,
+                errorMessage: error.message,
+                errorStack: error.stack?.substring(0, 500), // Limiter la taille
+                step: 'session_creation'
+            });
+            
+            // 🔍 VÉRIFICATION DES VARIABLES CRITIQUES
+            secureLogger.error('Vérification des variables critiques', null, {
+                JWT_SECRET_PRESENT: !!process.env.JWT_SECRET,
+                JWT_SECRET_LENGTH: process.env.JWT_SECRET?.length || 0,
+                FIREBASE_PROJECT_ID: !!process.env.FIREBASE_PROJECT_ID,
+                NODE_ENV: process.env.NODE_ENV
+            });
+            
+            // 🔍 RÉPONSE D'ERREUR SÉCURISÉE
+            let errorMessage = 'Erreur lors de l\'inscription';
+            let errorCode = 'SIGNUP_ERROR';
+            
+            if (error.code === 'auth/email-already-exists') {
+                errorMessage = 'Un compte avec cet email existe déjà';
+                errorCode = 'EMAIL_ALREADY_EXISTS';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'Le mot de passe est trop faible';
+                errorCode = 'WEAK_PASSWORD';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Format d\'email invalide';
+                errorCode = 'INVALID_EMAIL';
+            }
+            
+            res.status(400).json({ 
+                success: false, 
+                error: errorMessage,
+                code: errorCode
+            });
+        }
 });
 
 // Endpoint de modification du profil
