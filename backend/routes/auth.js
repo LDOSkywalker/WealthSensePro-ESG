@@ -92,7 +92,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         secureLogger.info('Anciens cookies nettoyés');
         
         // Cookie refresh_token uniquement (HttpOnly + Secure + SameSite=None)
-        res.cookie('__Host-refresh_token', refreshToken, {
+        res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
@@ -134,7 +134,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 // Endpoint de rafraîchissement du token avec rotation sécurisée
 router.post('/refresh', async (req, res) => {
     try {
-        const refreshToken = req.cookies['__Host-refresh_token'];
+        const refreshToken = req.cookies['refresh_token'];
         
         if (!refreshToken) {
             return res.status(401).json({
@@ -148,7 +148,7 @@ router.post('/refresh', async (req, res) => {
         const session = await sessionManager.refreshSession(refreshToken, req);
         
         // Mettre à jour le cookie avec le nouveau refresh token
-        res.cookie('__Host-refresh_token', session.refreshToken, {
+        res.cookie('refresh_token', session.refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
@@ -166,7 +166,7 @@ router.post('/refresh', async (req, res) => {
         secureLogger.error('Erreur refresh token', error);
         
         // En cas d'erreur de sécurité, révoquer le cookie
-        res.clearCookie('__Host-refresh_token');
+        res.clearCookie('refresh_token');
         
         res.status(401).json({
             success: false,
@@ -179,7 +179,7 @@ router.post('/refresh', async (req, res) => {
 // Endpoint de déconnexion avec révocation de session
 router.post('/logout', async (req, res) => {
     try {
-        const refreshToken = req.cookies['__Host-refresh_token'];
+        const refreshToken = req.cookies['refresh_token'];
         
         if (refreshToken) {
             try {
@@ -195,7 +195,7 @@ router.post('/logout', async (req, res) => {
             }
         }
         
-        res.clearCookie('__Host-refresh_token');
+        res.clearCookie('refresh_token');
         secureLogger.info('Utilisateur déconnecté avec révocation de session');
         res.json({ success: true });
     } catch (error) {
@@ -247,7 +247,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
         const { accessToken, refreshToken } = session;
 
         // Définir le cookie refresh_token
-        res.cookie('__Host-refresh_token', refreshToken, {
+        res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
