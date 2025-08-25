@@ -188,8 +188,65 @@ export const authService = {
     },
 
     async signup(payload: SignupPayload): Promise<User> {
-        const response = await axios.post(`${API_URL}/auth/signup`, payload, { withCredentials: true });
-        return response.data.user;
+        try {
+            console.log('🔍 [FRONTEND DEBUG] Début inscription avec payload:', {
+                email: payload.email,
+                firstName: payload.firstName,
+                lastName: payload.lastName,
+                referralSource: payload.referralSource,
+                disclaimerAccepted: payload.disclaimerAccepted,
+                disclaimerAcceptedAt: payload.disclaimerAcceptedAt
+            });
+            
+            console.log('🔍 [FRONTEND DEBUG] URL API:', `${API_URL}/auth/signup`);
+            console.log('🔍 [FRONTEND DEBUG] withCredentials:', true);
+            
+            const response = await axios.post(`${API_URL}/auth/signup`, payload, { withCredentials: true });
+            
+            console.log('🔍 [FRONTEND DEBUG] Réponse reçue:', {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+                data: response.data
+            });
+            
+            // Vérifier la structure de la réponse
+            if (!response.data || !response.data.user) {
+                console.error('❌ [FRONTEND DEBUG] Réponse invalide - pas de user dans response.data');
+                throw new Error('Réponse invalide du serveur');
+            }
+            
+            console.log('🔍 [FRONTEND DEBUG] Inscription réussie, utilisateur:', response.data.user);
+            return response.data.user;
+            
+        } catch (error: any) {
+            console.error('❌ [FRONTEND DEBUG] Erreur lors de l\'inscription:', {
+                name: error.name,
+                message: error.message,
+                code: error.code,
+                response: {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                    headers: error.response?.headers
+                },
+                request: {
+                    method: error.request?.method,
+                    url: error.request?.url,
+                    headers: error.request?.headers
+                }
+            });
+            
+            // Vérifier si c'est une erreur de parsing JSON
+            if (error.message && error.message.includes('JSON.parse')) {
+                console.error('❌ [FRONTEND DEBUG] Erreur de parsing JSON détectée');
+            }
+            
+            // Vérifier les cookies reçus
+            console.log('🔍 [FRONTEND DEBUG] Cookies reçus:', document.cookie);
+            
+            throw error;
+        }
     },
 
     async logout(): Promise<void> {
@@ -200,10 +257,32 @@ export const authService = {
 
     async checkAuth(): Promise<User | null> {
         try {
+            console.log('🔍 [FRONTEND DEBUG] Début checkAuth');
+            console.log('🔍 [FRONTEND DEBUG] Cookies avant checkAuth:', document.cookie);
+            console.log('🔍 [FRONTEND DEBUG] URL API:', `${API_URL}/protected`);
+            
             const response = await axios.get(`${API_URL}/protected`, { withCredentials: true });
+            
+            console.log('🔍 [FRONTEND DEBUG] checkAuth réussi:', {
+                status: response.status,
+                data: response.data
+            });
+            
             return response.data.user;
         } catch (error: any) {
-            console.log('checkAuth error:', error.response?.status, error.response?.data);
+            console.error('❌ [FRONTEND DEBUG] checkAuth error:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+                name: error.name,
+                code: error.code
+            });
+            
+            // Vérifier si c'est une erreur de parsing JSON
+            if (error.message && error.message.includes('JSON.parse')) {
+                console.error('❌ [FRONTEND DEBUG] Erreur de parsing JSON dans checkAuth');
+            }
+            
             return null;
         }
     },

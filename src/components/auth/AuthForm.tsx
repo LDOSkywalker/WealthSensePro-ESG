@@ -138,6 +138,20 @@ const AuthForm: React.FC = () => {
 
     try {
       setLoading(true);
+      
+      console.log('🔍 [FRONTEND DEBUG] Début processus d\'inscription avec formData:', {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        referralSource: formData.referralSource,
+        otherReferralSource: formData.otherReferralSource,
+        disclaimerAccepted: true,
+        disclaimerAcceptedAt: Date.now()
+      });
+      
+      // Vérifier les cookies avant l'inscription
+      console.log('🔍 [FRONTEND DEBUG] Cookies avant inscription:', document.cookie);
+      
       const userData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -146,7 +160,10 @@ const AuthForm: React.FC = () => {
         disclaimerAccepted: true,
         disclaimerAcceptedAt: Date.now()
       };
-      await authService.signup({
+      
+      console.log('🔍 [FRONTEND DEBUG] Appel authService.signup avec:', userData);
+      
+      const signupResult = await authService.signup({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
@@ -156,9 +173,28 @@ const AuthForm: React.FC = () => {
         disclaimerAccepted: true,
         disclaimerAcceptedAt: Date.now()
       });
+      
+      console.log('🔍 [FRONTEND DEBUG] Inscription réussie, résultat:', signupResult);
+      
+      // Vérifier les cookies après l'inscription
+      console.log('🔍 [FRONTEND DEBUG] Cookies après inscription:', document.cookie);
+      
+      console.log('🔍 [FRONTEND DEBUG] Tentative de login automatique...');
       await login(formData.email, formData.password);
+      
+      console.log('🔍 [FRONTEND DEBUG] Login automatique réussi, navigation vers /');
       navigate('/');
+      
     } catch (err: any) {
+      console.error('❌ [FRONTEND DEBUG] Erreur dans handleDisclaimerAccept:', {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        stack: err.stack,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
       let errorMessage = 'Une erreur est survenue';
       
       if (err.code === 'auth/email-already-in-use') {
@@ -167,6 +203,9 @@ const AuthForm: React.FC = () => {
         errorMessage = 'Le mot de passe doit contenir au moins 6 caractères';
       } else if (err.code === 'auth/invalid-email') {
         errorMessage = "Format d'email invalide";
+      } else if (err.message && err.message.includes('JSON.parse')) {
+        errorMessage = 'Erreur de communication avec le serveur';
+        console.error('❌ [FRONTEND DEBUG] Erreur de parsing JSON détectée');
       }
       
       setError(errorMessage);
