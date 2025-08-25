@@ -312,7 +312,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 errorCode = 'INVALID_EMAIL';
             }
             
-            res.status(400).json({ 
+                                    res.status(400).json({ 
                 success: false, 
                 error: errorMessage,
                 code: errorCode
