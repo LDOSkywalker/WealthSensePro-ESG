@@ -162,7 +162,7 @@ class SessionManager {
                 let revokedCount = 0;
                 // Pour l'inscription, utiliser directement le rôle sans uid
                 const policy = uid ? await this.getSessionPolicy(uid, userRole) : this.getDefaultPolicy(userRole);
-                console.log('🔍 [DEBUG SESSION] Policy de session:', policy);
+                secureLogger.info('Policy de session déterminée', null, { policy, userRole });
                 
                 // MODIFICATION : Tous les rôles ont maintenant la policy 'single' par défaut
                 if (policy === 'single') {
