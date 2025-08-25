@@ -210,6 +210,33 @@ router.post('/signup', signupLimiter, async (req, res) => {
         const { email, password, firstName, lastName, referralSource, otherReferralSource, disclaimerAccepted, disclaimerAcceptedAt } = req.body;
 
         secureLogger.operation('signup', { email });
+        
+        // 🔧 CORRECTION : Validation des données côté serveur
+        if (!email || !password || !firstName || !lastName || !referralSource) {
+            return res.status(400).json({
+                success: false,
+                error: 'Tous les champs obligatoires doivent être remplis',
+                code: 'MISSING_REQUIRED_FIELDS'
+            });
+        }
+        
+        // Validation spécifique pour otherReferralSource
+        if (referralSource === 'other' && (!otherReferralSource || !otherReferralSource.trim())) {
+            return res.status(400).json({
+                success: false,
+                error: 'Veuillez préciser comment vous avez connu WealthSensePro',
+                code: 'MISSING_OTHER_REFERRAL_SOURCE'
+            });
+        }
+        
+        // Validation du disclaimer
+        if (!disclaimerAccepted) {
+            return res.status(400).json({
+                success: false,
+                error: 'Vous devez accepter les conditions d\'utilisation',
+                code: 'DISCLAIMER_NOT_ACCEPTED'
+            });
+        }
 
         // Créer l'utilisateur dans Firebase Auth
         const userRecord = await admin.auth().createUser({
@@ -220,19 +247,32 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
         // Enregistrer les informations dans Firestore
         const db = admin.firestore();
-        await db.collection('users').doc(userRecord.uid).set({
+        
+        // 🔧 CORRECTION : Nettoyer les données avant envoi à Firestore
+        const userData = {
             email,
             firstName,
             lastName,
             referralSource,
-            otherReferralSource,
             disclaimerAccepted,
             disclaimerAcceptedAt,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             role: 'user',
             isActive: true
+        };
+        
+        // Ajouter otherReferralSource seulement s'il a une valeur valide
+        if (otherReferralSource && otherReferralSource.trim()) {
+            userData.otherReferralSource = otherReferralSource;
+        }
+        
+        secureLogger.info('Données utilisateur préparées pour Firestore', null, {
+            uidHash: userRecord.uid,
+            hasOtherReferralSource: !!userData.otherReferralSource
         });
+        
+        await db.collection('users').doc(userRecord.uid).set(userData);
 
         secureLogger.info('Utilisateur créé avec succès', { uid: userRecord.uid });
 
@@ -288,6 +328,21 @@ router.post('/signup', signupLimiter, async (req, res) => {
                 errorStack: error.stack?.substring(0, 500), // Limiter la taille
                 step: 'session_creation'
             });
+            
+            // 🔧 CORRECTION : Gestion spécifique des erreurs Firestore
+            if (error.message && error.message.includes('Firestore')) {
+                secureLogger.error('Erreur Firestore détectée', error, {
+                    uidHash: userRecord?.uid || 'N/A',
+                    step: 'firestore_write',
+                    errorType: 'firestore_validation'
+                });
+                
+                return res.status(400).json({
+                    success: false,
+                    error: 'Erreur lors de la création du profil utilisateur',
+                    code: 'FIRESTORE_ERROR'
+                });
+            }
             
             // 🔍 VÉRIFICATION DES VARIABLES CRITIQUES
             secureLogger.error('Vérification des variables critiques', null, {
